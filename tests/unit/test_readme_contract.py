@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_readme_matches_pages_modules_documentation_and_license_state():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "https://github.com/zfree1945/Tutor_assistance/releases/download/v1.0.2/TutorAssistant-v1.0.2-Windows-x64.zip" in readme
+    assert not list(ROOT.glob("*.zip"))
     tree = ast.parse((ROOT / "app.py").read_text(encoding="utf-8"))
     pages = next(ast.literal_eval(node.value) for node in tree.body
                  if isinstance(node, ast.Assign) and any(isinstance(name, ast.Name) and name.id == "PAGES" for name in node.targets))
