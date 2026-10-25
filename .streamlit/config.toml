@@ -1,0 +1,28 @@
+# Shared light theme; no external font or service is required.
+[theme]
+base = "light"
+primaryColor = "#245BE8"
+backgroundColor = "#F5F7FB"
+secondaryBackgroundColor = "#F8FAFD"
+textColor = "#173B57"
+linkColor = "#245BE8"
+borderColor = "#D9E3F0"
+showWidgetBorder = true
+showSidebarBorder = true
+baseRadius = "8px"
+buttonRadius = "8px"
+font = "sans-serif"
+baseFontSize = 14
+headingFontSizes = ["28px", "22px", "18px", "16px", "14px", "12px"]
+headingFontWeights = [700, 650, 650, 600, 600, 600]
+linkUnderline = false
+greenColor = "#128478"
+orangeColor = "#CB841C"
+blueColor = "#245BE8"
+
+[theme.sidebar]
+backgroundColor = "#EAF1F8"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#486582"
+primaryColor = "#245BE8"
+borderColor = "#DCE6F1"

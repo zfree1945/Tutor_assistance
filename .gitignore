@@ -1,0 +1,49 @@
+# Environments and Python caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# User credentials and application data
+.local/
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+*.dpapi
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.log
+/exports/
+/导入日志_*.json
+/测试用例*.txt
+/运行命令.txt
+
+# Generated test and coverage output
+artifacts/
+**/artifacts/
+.coverage
+.coverage.*
+htmlcov/
+
+# Portable runtimes and archives belong in Releases, not the repository
+dist/
+build/
+runtime/
+*.zip
+*.7z
+*.rar
+*.egg-info/
+
+# Local editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

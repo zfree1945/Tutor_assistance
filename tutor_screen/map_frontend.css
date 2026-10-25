@@ -1,0 +1,91 @@
+.tutor-map-slot { width: 100%; min-width: 0; }
+.tutor-map-shell {
+  position: relative; width: 100%; min-width: 0; overflow: hidden;
+  border: 1px solid var(--st-border-color, #d9e1e8);
+  border-radius: 16px; background: var(--st-secondary-background-color, #f3f6fa);
+  color: var(--st-text-color, #172b3a); font: inherit;
+}
+.tutor-map-canvas { width: 100%; height: 100%; min-height: 320px; }
+.tutor-map-status {
+  position: absolute; inset: 0; z-index: 20; display: flex;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 28px; text-align: center;
+  background: var(--st-secondary-background-color, #f3f6fa);
+}
+.tutor-map-status[hidden], .tutor-map-pick-hint[hidden] { display: none; }
+.tutor-map-status-title { font-size: 1.15rem; font-weight: 650; }
+.tutor-map-status-detail { max-width: 380px; font-size: .9rem; line-height: 1.7; opacity: .8; }
+.tutor-map-actions {
+  position: absolute; top: 12px; left: 12px; z-index: 10;
+  display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100% - 24px);
+}
+.tutor-map-action, .tutor-map-popup-button {
+  appearance: none; cursor: pointer; border: 1px solid #d6e0e6;
+  border-radius: 9px; background: #fff; color: #17344a;
+  font-family: inherit; font-size: 13px; line-height: 1.4; padding: 8px 11px;
+  box-shadow: 0 2px 9px #17344a12;
+}
+.tutor-map-action:focus-visible, .tutor-map-popup-button:focus-visible,
+.tutor-map-pin:focus-visible, .tutor-map-cluster:focus-visible {
+  outline: 3px solid #7bc4f5; outline-offset: 3px;
+}
+.tutor-map-action:hover, .tutor-map-popup-button:hover { background: #edf6fc; }
+.tutor-map-pick-hint {
+  position: absolute; top: 60px; left: 12px; right: 12px; z-index: 10;
+  border-radius: 9px; padding: 9px 12px; background: #17344aec;
+  color: #fff; font-size: 13px; pointer-events: none; text-align: center;
+}
+.tutor-map-legend {
+  position: absolute; bottom: 29px; right: 10px; z-index: 8;
+  display: flex; flex-wrap: wrap; gap: 10px; max-width: calc(100% - 20px);
+  padding: 7px 10px; border-radius: 8px; background: #ffffffed;
+  color: #254256; font-size: 11px; box-shadow: 0 2px 9px #17344a12;
+}
+.tutor-map-legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.tutor-map-legend-dot {
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  min-width: 24px; height: 22px; border: 2px solid #167c88; border-radius: 12px;
+  color: #12636d; background: #eef8f8; font: 700 11px/1 sans-serif;
+}
+.tutor-map-legend-dot.possible { border-color: #b56a16; color: #925010; background: #fff5e9; }
+.tutor-map-legend-dot.approximate { border: 0; background: transparent; color: #17344a; font-size: 13px; }
+.tutor-map-pin, .tutor-map-cluster {
+  appearance: none; display: flex; justify-content: center; align-items: center;
+  min-width: 34px; height: 34px; padding: 0 7px; border: 3px solid #fff;
+  border-radius: 18px; background: #167c88; color: #fff;
+  box-shadow: 0 2px 8px #122e4355; font: 700 12px/1 sans-serif;
+  white-space: nowrap; cursor: pointer;
+}
+.tutor-map-pin.possible { background: #b56a16; }
+.tutor-map-pin.possible, .tutor-map-cluster.possible, .tutor-map-legend-dot.possible { border-style: dashed; }
+.tutor-map-pin.selected { background: #245dd8; outline: 3px solid #9bc3ff; z-index: 3; }
+.tutor-map-cluster { min-width: 43px; height: 43px; border-radius: 50%; background: #17344a; font-size: 14px; }
+.tutor-map-pin.area-medium, .tutor-map-cluster.area-medium { opacity: .82; }
+.tutor-map-pin.area-large, .tutor-map-cluster.area-large { opacity: .62; }
+.tutor-map-origin {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 32px; height: 32px;
+  border: 3px solid white; border-radius: 9px; background: #17344a;
+  color: white; box-shadow: 0 0 0 5px #17344a22; font-size: 20px; line-height: 1;
+}
+.tutor-map-origin svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.tutor-map-legend .tutor-map-origin { flex: 0 0 22px; width: 22px; height: 22px; border-width: 2px; border-radius: 6px; box-shadow: 0 0 0 2px #17344a22; }
+.tutor-map-legend .tutor-map-origin svg { width: 14px; height: 14px; }
+.tutor-map-popup { min-width: 175px; max-width: min(260px, 65vw); color: #17344a; font-family: sans-serif; padding: 3px; }
+.tutor-map-popup-title { font-size: 15px; font-weight: 700; margin: 0 0 8px; overflow-wrap: anywhere; }
+.tutor-map-popup-detail { margin: 5px 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.tutor-map-popup-button { display: block; margin-top: 10px; width: 100%; font-weight: 600; }
+.tutor-map-popup-orders { max-height: 220px; overflow-y: auto; }
+.tutor-map-raw-tooltip {
+  position: fixed; z-index: 1000001; box-sizing: border-box; pointer-events: none;
+  width: 360px; max-width: calc(100vw - 24px); max-height: calc(100vh - 24px);
+  overflow-y: auto; padding: 14px 16px; border: 1px solid #cbdbea;
+  border-radius: 12px; background: #fff; color: #17344a;
+  box-shadow: 0 5px 24px #17344a30; font: 14px/1.65 "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+.tutor-map-raw-title { margin-bottom: 8px; font-weight: 700; overflow-wrap: anywhere; }
+.tutor-map-raw-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .tutor-map-shell { border-radius: 12px; }
+  .tutor-map-action { font-size: 12px; padding: 8px; }
+  .tutor-map-legend { gap: 7px; font-size: 10px; }
+}
