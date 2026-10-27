@@ -58,7 +58,7 @@ TutorAssistant-v1.0.3/
 - 使用合成数据验证解析与 CSV 导出，使用模拟凭据验证 DPAPI 加密保存与读取。测试数据只生成在独立验证副本，不写入交付 ZIP。
 - 源码全量回归含浏览器验收为 1392 通过、0 失败、0 跳过，耗时 329.22 秒。
 
-这次仅验证本机 Windows x64 的离线启动及模拟业务，不代表真实高德或模型服务、其他电脑或全部 Windows 版本已通过验收。ZIP 尚未上传 GitHub。
+这次仅验证本机 Windows x64 的离线启动及模拟业务，不代表真实高德或模型服务、其他电脑或全部 Windows 版本已通过验收。ZIP 和校验文件通过 [v1.0.3 Release](https://github.com/zfree1945/Tutor_assistance/releases/tag/v1.0.3) 分发。
 
 ## v1.0.2 历史验证：2026-10-25
 

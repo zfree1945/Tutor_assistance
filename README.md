@@ -2,7 +2,7 @@
 
 粘贴家教订单文本，解析成结构化订单并在本地筛选，在地图上查看位置分布。一个单用户、本地运行的 Streamlit 应用，完整使用环境为 Windows。
 
-本次源码更新见 [v1.0.3 更新说明](docs/CHANGELOG_V1.0.3.md)。下方自带环境下载链接仍指向已发布的 v1.0.2；v1.0.3 启动包需另行构建和发布。
+本次更新见 [v1.0.3 更新说明](docs/CHANGELOG_V1.0.3.md)。自带环境启动包包含 Python 3.12.14 和运行依赖，完整解压后即可启动。
 
 ## 功能特性
 
@@ -18,7 +18,7 @@
 
 ### 直接使用：自带环境启动包
 
-Windows x64 自带环境启动包：**[下载 ZIP](https://github.com/zfree1945/Tutor_assistance/releases/download/v1.0.2/TutorAssistant-v1.0.2-Windows-x64.zip)**。也可进入 [v1.0.2 Release](https://github.com/zfree1945/Tutor_assistance/releases/tag/v1.0.2) 查看说明和 SHA256；启动包作为 Release 附件，不放在源码仓库中。
+Windows x64 自带环境启动包：**[下载 ZIP](https://github.com/zfree1945/Tutor_assistance/releases/download/v1.0.3/%E5%AE%B6%E6%95%99%E7%AD%9B%E5%8D%95%E5%99%A8-v1.0.3-Windows-x64.zip)**。也可进入 [v1.0.3 Release](https://github.com/zfree1945/Tutor_assistance/releases/tag/v1.0.3) 查看说明、验证报告和 SHA256；启动包作为 Release 附件，不放在源码仓库中。
 
 完整解压启动包，双击其中的 `快速开始.bat`。无需安装 Python 或依赖，使用期间保留启动窗口。浏览器通常会自动打开；若未打开，请访问窗口显示的本机地址，通常为 [http://localhost:8501](http://localhost:8501)。
 
