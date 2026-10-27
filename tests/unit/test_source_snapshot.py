@@ -55,3 +55,4 @@ def test_source_and_portable_build_identify_the_new_version():
     assert '"application_version": "1.0.3"' in build
     assert "TutorAssistant-v1.0.3" in build and "v1.0.2" not in build
     assert "docs/CHANGELOG_V1.0.3.md" in readme
+    assert 'st.caption("v1.0.3 · 本地解析与筛选")' in (ROOT / "app.py").read_text(encoding="utf-8")

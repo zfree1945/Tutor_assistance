@@ -1,4 +1,4 @@
-"""家教筛单器 v1.0.2：运行 `streamlit run app.py`。"""
+"""家教筛单器 v1.0.3：运行 `streamlit run app.py`。"""
 
 import hashlib
 import json
@@ -278,7 +278,7 @@ with st.sidebar:
     st.session_state.nav_widget = st.session_state.page
     page = st.radio("页面", PAGES, key="nav_widget", on_change=navigation_changed, label_visibility="collapsed", width="stretch")
     with st.container(key="sidebar_note"):
-        st.caption("v1.0.2 · 本地解析与筛选")
+        st.caption("v1.0.3 · 本地解析与筛选")
         st.caption("导入与筛选记录保存在本机，可在开发日志中回看。")
     if st.session_state._history_error:
         st.warning("开发日志未保存或读取失败：" + st.session_state._history_error)

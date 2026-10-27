@@ -1,5 +1,6 @@
 """Packaging uses public inputs and wheel inventories, never a user's live tree."""
 import importlib.util
+import json
 from pathlib import Path
 from types import SimpleNamespace
 import zipfile
@@ -71,7 +72,7 @@ def test_bundle_validation_rejects_private_data(tmp_path):
 
 def test_archive_keeps_one_root_and_refuses_overwrite(tmp_path):
     root = tmp_path / "App"
-    for name in ("runtime/python.exe", "runtime/python312._pth", "app/app.py", "app/tutor_screen/map_frontend.js", "快速开始.bat"):
+    for name in ("runtime/python.exe", "runtime/python312._pth", "app/app.py", "app/tutor_screen/map_frontend.js", "快速开始.bat", "LICENSE"):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("public", encoding="utf-8")
@@ -88,3 +89,29 @@ def test_portable_entry_uses_only_bundled_python():
     assert "pip install" not in portable.BAT
     assert "py -3.12" not in portable.BAT
     assert "--server.address=127.0.0.1" in portable.BAT
+
+
+def test_build_release_contains_application_license_and_no_saved_user_data(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    for name in ("tutor_screen", ".streamlit", ".local"):
+        (source / name).mkdir(parents=True)
+    (source / "LICENSE").write_bytes((ROOT / "LICENSE").read_bytes())
+    (source / "app.py").write_text("# application", encoding="utf-8")
+    (source / "tutor_screen/map_frontend.js").write_text("// public", encoding="utf-8")
+    (source / ".streamlit/config.toml").write_text('[theme]\nbase="light"', encoding="utf-8")
+    (source / "requirements.txt").write_text("", encoding="utf-8")
+    (source / ".local/current_batch.json").write_text('"SYNTHETIC-PRIVATE"', encoding="utf-8")
+    monkeypatch.setattr(portable, "dependency_closure", lambda _: {})
+    def runtime(_base, destination):
+        destination.mkdir()
+        (destination / "python.exe").write_bytes(b"synthetic runtime")
+        (destination / "python312._pth").write_text("../app", encoding="ascii")
+    monkeypatch.setattr(portable, "copy_python", runtime)
+    archive = portable.build(source, tmp_path / "release")
+    with zipfile.ZipFile(archive) as content:
+        prefix = "TutorAssistant-v1.0.3/"
+        assert content.read(prefix + "LICENSE") == (ROOT / "LICENSE").read_bytes()
+        instructions = content.read(prefix + "使用说明.txt").decode("utf-8-sig")
+        assert "MIT" in instructions and "尚未选择" not in instructions
+        assert json.loads(content.read(prefix + "runtime_inventory.json"))["application_version"] == "1.0.3"
+        assert not any(".local" in name for name in content.namelist())
