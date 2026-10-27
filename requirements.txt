@@ -1,0 +1,6 @@
+# Application dependencies and the tested Streamlit dataframe backend.
+streamlit==1.64.0
+pandas==3.0.6
+pydantic==2.13.5
+httpx==0.28.1
+openai==3.17.0

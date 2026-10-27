@@ -1,0 +1,12 @@
+.origin-search {font: inherit; color: var(--st-text-color, #173b57); width: 100%;}
+.origin-search label {display: block; font-size: 14px; margin-bottom: 8px;}
+.origin-search input {box-sizing: border-box; width: 100%; min-height: 36px; padding: 8px 10px;
+  font: inherit; color: inherit; border: 1px solid var(--st-border-color, #d9e3f0);
+  border-radius: 8px; background: var(--st-secondary-background-color, #f8fafd);}
+.origin-search input:focus {outline: 2px solid var(--st-primary-color, #245be8); outline-offset: -1px;}
+.origin-search [role=listbox] {max-height: 260px; overflow-y: auto; margin-top: 4px;
+  border: 1px solid var(--st-border-color, #d9e3f0); border-radius: 8px;
+  background: var(--st-secondary-background-color, #f8fafd);}
+.origin-search [role=option] {padding: 9px 10px; cursor: pointer; overflow-wrap: anywhere;}
+.origin-search [role=option]:hover, .origin-search [aria-selected=true] {background: #e4ebf5;}
+.origin-status {font-size: 12px; margin-top: 4px; overflow-wrap: anywhere;}

@@ -1,0 +1,96 @@
+/* The native theme owns colors for controls. Scope layout rules to stable
+   test IDs and application keys rather than generated Streamlit class names. */
+.stApp {font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+.origin-city-warning,.origin-selection-warning {color:#c62828;font-size:.875rem;line-height:1.6;overflow-wrap:anywhere}
+/* Match the native origin name field to the adjacent autocomplete control. */
+.st-key-map_origin_name [data-testid="stWidgetLabel"] {
+  display:block;min-height:0;margin:0 0 8px;font-size:14px;line-height:1.6;
+}
+.st-key-map_origin_name [data-testid="stWidgetLabel"] p {font-size:14px;line-height:1.6;margin:0}
+.st-key-map_origin_name [data-testid="stTextInputRootElement"] {min-height:0;height:40.4px}
+.st-key-map_origin_name input {font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-size:14px;line-height:1.6;padding:8px 10px}
+[data-testid="stMainBlockContainer"] {max-width:1600px;padding:2rem 2.3rem 3rem}
+[data-testid="stHeader"] {background:transparent}
+[data-testid="stToolbar"] {opacity:.45}
+[data-testid="stToolbar"]:hover,[data-testid="stToolbar"]:focus-within {opacity:1}
+[data-testid="stSidebar"] {width:208px!important;min-width:208px!important;max-width:208px!important}
+[data-testid="stSidebarUserContent"] {padding:0!important}
+[data-testid="stSidebarHeader"] {height:1.4rem;padding:0 .8rem}
+.sidebar-brand {display:flex;align-items:center;gap:7px;color:#173b57;font-size:19px;white-space:nowrap}
+.sidebar-brand span {display:grid;place-items:center;width:27px;height:27px;border-radius:8px;background:#245be8;color:white;font-size:18px;font-weight:700}
+.sidebar-tagline {color:#7187a0;font-size:11px;margin:9px 0 30px;white-space:nowrap}
+.st-key-nav_widget {width:100%!important}
+.st-key-nav_widget [role="radiogroup"] {gap:8px;width:100%!important}
+.st-key-nav_widget [data-testid="stRadioOption"] {min-height:45px;width:100%!important;max-width:none!important;padding:10px 12px;border-radius:10px;margin:0;gap:8px;transition:background .15s}
+.st-key-nav_widget label:hover {background:#f5f8fc}
+.st-key-nav_widget label:has(input:checked) {background:white;box-shadow:0 2px 5px #173b5708;color:#245be8;font-weight:650}
+.st-key-nav_widget label:has(input:focus-visible) {outline:2px solid #245be8;outline-offset:1px}
+.st-key-sidebar_note {margin-top:6rem;border-top:1px solid #dce6f1;padding-top:1rem}
+[data-testid="stCaptionContainer"] {color:#62778f;line-height:1.7;opacity:1!important}
+[data-testid="stCaptionContainer"] p {color:#62778f}
+[data-testid="stHeading"] h1 {padding:0 0 .25rem;letter-spacing:-.5px}
+[data-testid="stHeading"] h3 {padding:0 0 .3rem}
+[data-testid="stVerticalBlockBorderWrapper"]>div {border-radius:14px}
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-model_connection),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-model_help) {height:100%}
+.st-key-results_map,.st-key-filter_panel,.st-key-model_connection,.st-key-model_help,
+.st-key-import_editor,.st-key-map_credentials,.st-key-map_origins,.st-key-map_cache,
+.st-key-history_overview,.st-key-history_record,.st-key-history_snapshot,
+[class*="st-key-order_card_"] {background:#fff;border:1px solid #d9e3f0;border-radius:14px;padding:20px}
+/* Containers already expose a native border; avoid a second frame. */
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-results_map),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-filter_panel),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-model_connection),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-model_help),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-import_editor),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-map_credentials),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-map_origins),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-map_cache),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-history_overview),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-history_record),
+[data-testid="stVerticalBlockBorderWrapper"]:has(>.st-key-history_snapshot) {border:0;padding:0}
+.st-key-results_map {padding:14px;overflow:hidden}
+.st-key-results_list {margin-top:.7rem}
+.st-key-model_help [data-testid="stMarkdownContainer"] {margin-top:.35rem}
+.st-key-step_settings button,.st-key-step_import button,.st-key-step_results button {min-height:102px;background:#fff;text-align:left;justify-content:flex-start;padding:18px;border-radius:12px}
+.st-key-step_settings button p,.st-key-step_import button p,.st-key-step_results button p {text-align:left;line-height:1.9}
+.st-key-history_overview [data-testid="stMetric"] {border:0;background:transparent;padding:0}
+[class*="st-key-order_card_"] [data-testid="stExpander"] {border:0;border-top:1px solid #edf1f7;border-radius:0}
+[class*="st-key-order_card_"] [data-testid="stText"] {white-space:pre-wrap;overflow-wrap:anywhere}
+[data-testid="stText"] {overflow-wrap:anywhere}
+.results-map-empty {min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#f2f6fa;border:1px solid #e4ebf3;border-radius:10px;padding:24px;color:#6d849b}
+.results-map-empty strong {font-size:18px;color:#486582}
+.results-map-empty p {margin:12px 0 8px;line-height:1.8}
+.map-empty-icon {font-size:46px;line-height:1.5;color:#8aa7c9}
+.st-key-results_viewport_probe {position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+[class*="st-key-results_orders_"] {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+[class*="st-key-results_orders_"]>* {min-width:0}
+@media(min-width:1200px) {
+  [data-testid="stMainBlockContainer"]:has(.st-key-results_workspace) {max-width:none;padding-left:1.3rem;padding-right:1.3rem}
+  .st-key-results_workspace {display:grid;grid-template-columns:minmax(360px,1.1fr) minmax(0,1.4fr);align-items:start;gap:20px}
+  .st-key-results_workspace>* {min-width:0}
+  .st-key-results_map {position:sticky;top:1rem}
+  .st-key-results_list {margin-top:0}
+  [class*="st-key-results_orders_"] {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  [class*="st-key-order_card_"] {padding:12px;gap:5px}
+  [class*="st-key-order_card_"] [data-testid="stCaptionContainer"] p {font-size:14px;line-height:1.4}
+  [class*="st-key-order_card_"] [data-testid="stText"] {display:block;max-height:clamp(72px,10vh,140px);overflow:auto;font-size:14px;line-height:1.5;scrollbar-gutter:stable}
+  [class*="st-key-order_card_"] button {min-height:30px;padding:.25rem .5rem}
+}
+@media(min-width:641px) {.st-key-model_connection,.st-key-model_help {min-height:510px}}
+@media(max-width:900px) {[data-testid="stMainBlockContainer"] {padding:4.5rem 1.25rem 2rem}}
+@media(max-width:640px) {
+  [class*="st-key-results_orders_"] {grid-template-columns:minmax(0,1fr)}
+  [data-testid="stMainBlockContainer"] {padding:4.5rem 1rem 2rem}
+  .st-key-results_map,.st-key-filter_panel,.st-key-model_connection,.st-key-model_help,
+  .st-key-import_editor,.st-key-map_credentials,.st-key-map_origins,.st-key-map_cache,
+  .st-key-history_overview,.st-key-history_record,.st-key-history_snapshot,
+  [class*="st-key-order_card_"] {padding:15px;border-radius:12px}
+  .st-key-results_map {padding:10px}
+  .results-map-empty {min-height:300px;padding:18px}
+  .st-key-filter_panel [data-testid="stHorizontalBlock"]:has(>[data-testid="stColumn"]) {display:flex;flex-wrap:wrap;gap:12px}
+  .st-key-filter_panel [data-testid="stHorizontalBlock"]>[data-testid="stColumn"] {min-width:calc(50% - 6px)!important;flex:1 1 calc(50% - 6px)!important;width:calc(50% - 6px)!important}
+  .st-key-filter_panel label p {font-size:12px}
+  .st-key-filter_panel [data-testid="stCheckbox"] {white-space:normal}
+  .st-key-step_settings button,.st-key-step_import button,.st-key-step_results button {min-height:76px}
+}
