@@ -2,6 +2,7 @@
 import importlib.util
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -12,8 +13,17 @@ project_check = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(project_check)
 
 
-def test_application_snapshot_resources_and_documentation_are_complete():
-    assert project_check.check_project(ROOT) == []
+def test_application_snapshot_resources_and_documentation_are_complete(tmp_path):
+    # The app creates .local during normal use. Check public source resources
+    # without copying or deleting the user's saved keys, orders or logs.
+    snapshot = tmp_path / "source"
+    shutil.copytree(ROOT, snapshot, ignore=shutil.ignore_patterns(
+        *project_check.IGNORED_DIRS, ".env*", "secrets.toml", "*.dpapi", "*.sqlite*", "*.db*", "*.log",
+        "test", "test_v1.0.1", "dist", "build", "runtime", "exports", "导入日志_*",
+    ))
+    assert not (snapshot / ".local").exists()
+    assert not (snapshot / ".streamlit" / "secrets.toml").exists()
+    assert project_check.check_project(snapshot) == []
 
 
 def test_publishing_check_detects_copied_private_runtime_data(tmp_path):

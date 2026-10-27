@@ -38,7 +38,7 @@ def evaluate_order(order: Order, criteria: Criteria) -> Order:
     # 从原文修正会话里的旧结果，应用筛选无需再次请求模型。
     order = Order.model_validate(order.model_dump())
     try:
-        normalize_local_fields(order, order.raw_text)
+        normalize_local_fields(order, order.raw_text, preserve_model_address=order.extraction_source == "model")
     except Exception:
         order.uncertain_fields = sorted(set(order.uncertain_fields) | {"本地解析"})
     reasons: list[str] = []

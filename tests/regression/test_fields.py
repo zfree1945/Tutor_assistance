@@ -56,8 +56,8 @@ GOLDEN = [
     ("初中数学 时间：一周1次，一次1.5小时，时间可协商", {"weekly_sessions": 1, "lesson_hours": 1.5, "days": [], "time_slots": []}),
     ("初中数学 每周1-2次", {"weekly_sessions": None, "days": []}),
     ("订单号 A100 小学数学", {"order_number": "A100"}),
-    ("温州100922\n辅导科目：高三数学", {"order_number": "温州100922", "grade": "高中"}),
-    ("S223080【初中全科】", {"order_number": "S223080", "grade": "初中"}),
+    ("温州433255\n辅导科目：高三数学", {"order_number": "温州433255", "grade": "高中"}),
+    ("S556313【初中全科】", {"order_number": "S556313", "grade": "初中"}),
     ("订单号 A101 小学语文 时薪：0", {"hourly_rate": 0}),
     ("初中数学 线上\n时间：周六晚上或周日上午", {"days": [6, 7], "day_options": [[6], [7]], "time_slots": ["上午", "晚上"]}),
 ]

@@ -1,4 +1,4 @@
-"""家教筛单器 v1.0.2：运行 `streamlit run app.py`。"""
+"""家教筛单器 v1.0.3：运行 `streamlit run app.py`。"""
 
 import hashlib
 import json
@@ -278,7 +278,7 @@ with st.sidebar:
     st.session_state.nav_widget = st.session_state.page
     page = st.radio("页面", PAGES, key="nav_widget", on_change=navigation_changed, label_visibility="collapsed", width="stretch")
     with st.container(key="sidebar_note"):
-        st.caption("v1.0.2 · 本地解析与筛选")
+        st.caption("v1.0.3 · 本地解析与筛选")
         st.caption("导入与筛选记录保存在本机，可在开发日志中回看。")
     if st.session_state._history_error:
         st.warning("开发日志未保存或读取失败：" + st.session_state._history_error)
@@ -296,6 +296,7 @@ def import_page() -> None:
     with st.container(border=True, key="import_editor"):
         st.subheader("添加订单")
         st.caption("粘贴文本或上传 TXT，再点击下方“应用筛选”。每批最多 300 条订单。")
+        st.caption("解析时会向 DeepSeek 发送订单中的地址；姓名和联系方式仍会脱敏。地址按原文提取，“近、约”等描述会保留。")
         left, right = st.columns([1.4, 1], gap="large")
         with left:
             pasted = st.text_area("粘贴订单文本", placeholder="在这里粘贴一批订单，订单之间建议空一行…", height=280, key="order_text", persist_state="session")
@@ -610,6 +611,7 @@ def result_page() -> None:
 def settings_page() -> None:
     st.title("模型设置")
     st.caption("连接 DeepSeek API，开始解析订单。配置自动加密保存在本机。")
+    st.caption("本地解析与模型共同识别原文地址，用于后续高德定位；附近、距离等描述仅作约略位置参考。")
     left, right = st.columns([2, 1], gap="large")
     with left:
         with st.container(border=True, key="model_connection"):

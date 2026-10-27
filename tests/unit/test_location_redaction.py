@@ -15,15 +15,15 @@ from tutor_screen.segmentation import numbered_lines, split_orders
 @pytest.mark.parametrize("label", ["地点:", "联系地址：", "地址★", "地址"])
 @pytest.mark.parametrize("separator", ["\n", "\r\n", " "])
 def test_only_address_span_is_hidden_and_business_text_is_preserved(label, separator):
-    raw = f"{label}温州龙湾滨海宝龙世家　{separator}对象:初一学生，要求思路清晰，辅导数学/科学/英语"
+    raw = f"{label}温州龙湾滨海合成家园　{separator}对象:初一学生，要求思路清晰，辅导数学/科学/英语"
     span, = location_spans(raw)
-    assert raw[span.start:span.end] == span.value == "温州龙湾滨海宝龙世家"
+    assert raw[span.start:span.end] == span.value == "温州龙湾滨海合成家园"
     expected = raw[:span.start] + "█" * (span.end - span.start) + raw[span.end:]
     assert mask_for_model(raw) == expected
 
 
 @pytest.mark.parametrize("path", ["extract", "split"])
-def test_actual_user_sample_requests_hide_all_locations_and_keep_student_line(path):
+def test_actual_requests_share_locations_only_for_field_extraction(path):
     sample = (Path(__file__).parent / "fixtures/sixteen_orders_with_decoration.txt").read_text(encoding="utf-8")
     reply = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='{"boundaries": []}' if path == "split" else '{}'))])
     with patch("tutor_screen.llm_client._client") as client:
@@ -36,7 +36,7 @@ def test_actual_user_sample_requests_hide_all_locations_and_keep_student_line(pa
         payloads = [call.kwargs["messages"][-1]["content"] for call in client.return_value.chat.completions.create.call_args_list]
     sent = "\n".join(payloads)
     for span in location_spans(sample):
-        assert span.value not in sent
+        assert (span.value in sent) == (path == "extract")
     assert "对象:初一学生，辅导数学/科学/英语，浙教版学生现在每课85分以上" in sent
     assert "70-90元/小时" in sent
     if path == "split":
@@ -53,9 +53,9 @@ def test_repeated_title_and_explicit_addresses_keep_exact_offsets():
 
 
 def test_unlabeled_address_and_contacts_still_hidden_without_masking_student():
-    raw = "地点:温州龙湾滨海宝龙世家\r\n对象:初一学生，要求思路清晰\r\n模拟大厦3栋502室\r\n电话：13800138000\r\n微信：test_contact"
+    raw = "地点:温州龙湾滨海合成家园\r\n对象:初一学生，要求思路清晰\r\n模拟大厦3栋502室\r\n电话：13800138000\r\n微信：test_contact"
     masked = mask_for_model(raw)
-    for value in ["温州龙湾滨海宝龙世家", "模拟大厦3栋502室", "13800138000", "test_contact"]:
+    for value in ["温州龙湾滨海合成家园", "模拟大厦3栋502室", "13800138000", "test_contact"]:
         assert value not in masked
     assert "对象:初一学生，要求思路清晰" in masked
     assert len(masked) == len(raw)

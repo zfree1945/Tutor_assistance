@@ -33,7 +33,8 @@ def test_qa11_both_request_paths_mask_private_data_and_do_not_send_key_in_body(m
         assert llm_client.try_split(raw,KEY,"https://example.test","mock") is None
     factory.assert_called_once_with(KEY,"https://example.test")
     body = json.dumps(create.call_args.kwargs,ensure_ascii=False)
-    assert all(secret not in body for secret in [KEY,"测试市合成路999号","13800138000","qa_private_123"])
+    assert all(secret not in body for secret in [KEY,"13800138000","qa_private_123"])
+    assert ("测试市合成路999号" in body) == (route == "extract")
     assert "小学数学" in body and "150/h" in body
 
 

@@ -29,7 +29,7 @@ def test_area_marker_keeps_reference_distance_and_all_orders_when_sorting():
     area, far = order("AREA101", "鹿城区人民路"), order("AREA102", "远处示例小区")
     reference = GeoPoint(lng=121.4, lat=28.4, label="温州市鹿城区人民路", city="温州市", precision="area", area_scale="medium")
     map_store.save_geo(area.address, "温州市", GeoResult(status="ambiguous", area_point=reference, resolver_revision=LOCATION_REVISION))
-    map_store.save_geo(far.address, "温州市", GeoResult(status="located", candidates=[GeoPoint(lng=121, lat=28.3, city="温州市", precision="exact")]))
+    map_store.save_geo(far.address, "温州市", GeoResult(status="located", resolver_revision=LOCATION_REVISION, candidates=[GeoPoint(lng=121, lat=28.3, city="温州市", precision="exact")]))
     app = AppTest.from_file(APP, default_timeout=15)
     app.session_state["page"] = "筛选结果"
     app.session_state["orders"] = [area, far]

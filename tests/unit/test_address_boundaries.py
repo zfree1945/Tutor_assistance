@@ -17,7 +17,7 @@ from tutor_screen.text_fields import read_fields
 @pytest.mark.parametrize("newline", ["\n", "\r\n", "\r"])
 @pytest.mark.parametrize("label", ["地点:", "地址★", "【辅导地点】", "地址"])
 def test_address_stops_at_line_end_even_before_unknown_field(label, newline):
-    address = "温州龙湾滨海宝龙世家"
+    address = "温州龙湾滨海合成家园"
     raw = f"{label}  {address}　{newline}对象:初一学生，辅导数学/科学/英语{newline}时间:周六"
     span, = location_spans(raw)
     assert span.value == parse_local(raw).address == address
@@ -32,8 +32,8 @@ def test_address_stops_at_line_end_even_before_unknown_field(label, newline):
 
 @pytest.mark.parametrize("label", ["地址：", "【地址】", "地点"])
 def test_address_stops_before_same_line_student_field(label):
-    raw = f"{label}龙湾区和家锦园 对象:初一学生，辅导数学 时间:周六"
-    assert parse_local(raw).address == "龙湾区和家锦园"
+    raw = f"{label}龙湾区合成锦园 对象:初一学生，辅导数学 时间:周六"
+    assert parse_local(raw).address == "龙湾区合成锦园"
     assert "对象:初一学生" in mask_for_model(raw)
     student, = [field for field in read_fields(raw) if field.category == "student"]
     assert student.value == "初一学生，辅导数学"
@@ -60,17 +60,17 @@ def test_complete_user_batch_has_clean_addresses(model_fails):
         orders = process_batch(raw, "synthetic", "https://example.test", "synthetic")
     assert len(orders) == 16
     by_number = {order.order_number: order for order in orders}
-    assert by_number["wz2379"].address == "温州龙湾滨海宝龙世家"
-    assert by_number["温州102064"].address == "龙湾区和家锦园"
-    assert by_number["wz2391"].address == "龙湾或瓯北"
-    assert by_number["温州线上102111"].mode == "线上"
+    assert by_number["wz5602"].address == "温州龙湾滨海合成家园"
+    assert by_number["温州435397"].address == "龙湾区合成锦园"
+    assert by_number["wz5624"].address == "龙湾或瓯北"
+    assert by_number["温州线上435444"].mode == "线上"
     assert all(order.address and clean_query(order.address) == order.address for order in orders)
 
 
 def test_existing_polluted_order_is_corrected_during_filtering():
-    raw = "wz2379\n地点:温州龙湾滨海宝龙世家\n对象:初一学生，辅导数学\n时间:周六"
-    old = Order(order_id="old", raw_text=raw, address="温州龙湾滨海宝龙世家\n对象:初一学生，辅导数学")
+    raw = "wz5602\n地点:温州龙湾滨海合成家园\n对象:初一学生，辅导数学\n时间:周六"
+    old = Order(order_id="old", raw_text=raw, address="温州龙湾滨海合成家园\n对象:初一学生，辅导数学")
     result = evaluate_order(old, Criteria())
-    assert result.address == "温州龙湾滨海宝龙世家"
+    assert result.address == "温州龙湾滨海合成家园"
     assert "对象" not in result.field_sources["address"]
     assert "对象" in old.address

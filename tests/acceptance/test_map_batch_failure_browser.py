@@ -9,7 +9,7 @@ from test_map_browser import APP_WRAPPER, SDK, api_calls
 
 ARTIFACTS = ROOT / "artifacts/acceptance/map_batch_failure"
 WRAPPER = APP_WRAPPER.replace(
-    '["八仙楼小区","大学城小区","同名小区"]',
+    '["合成楼小区","大学城小区","同名小区"]',
     '[f"合成小区{i}" for i in range(1,21)]',
 ).replace(
     '        locations={',

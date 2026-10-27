@@ -71,14 +71,16 @@ def test_mask_keeps_offsets_and_lines_and_removes_sensitive_values():
 
 
 @pytest.mark.parametrize("path", ["extract", "split"])
-def test_both_actual_request_paths_mask_private_data(path):
+def test_actual_request_paths_hide_contacts_and_share_addresses_only_for_extraction(path):
     with patch("tutor_screen.llm_client._client") as client:
         client.return_value.chat.completions.create.return_value = response({} if path == "extract" else {"boundaries": []})
         (extract_order if path == "extract" else try_split)(RAW_PRIVATE, "key", "https://example.test", "model")
         messages = client.return_value.chat.completions.create.call_args.kwargs["messages"]
     sent = messages[-1]["content"]
-    for value in PRIVATE:
+    for value in PRIVATE[:-2]:
         assert value not in sent, (path, value)
+    for value in PRIVATE[-2:]:
+        assert (value in sent) == (path == "extract")
     assert "150/h" in sent
 
 

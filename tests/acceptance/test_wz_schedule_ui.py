@@ -15,7 +15,7 @@ APP = Path(__file__).parents[2] / "app.py"
 def test_legacy_session_is_updated_once_using_applied_conditions_and_preserving_old_snapshot():
     old = Order(order_id="ORD-0001", raw_text=ORDERS[0], grade="小学", subjects=["英语"],
                 lesson_hours=None, days=[7], weekly_sessions=1, mode="线下",
-                address="平阳县万全新悦广场\n详情:女老师", uncertain_fields=["每次时长"], extraction_source="model")
+                address="平阳县示例镇合成广场\n详情:女老师", uncertain_fields=["每次时长"], extraction_source="model")
     record_id = store.create_import(source_type="粘贴", input_text=ORDERS[0])
     store.append_event(record_id, kind="解析完成", orders=[old])
     app = AppTest.from_file(APP)

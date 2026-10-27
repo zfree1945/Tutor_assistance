@@ -12,7 +12,7 @@ from tutor_screen.privacy import mask_for_model
 from test_segmentation import SAMPLE_ORDERS, EXPECTED_NUMBERS
 
 
-RAW = SAMPLE_ORDERS.replace("220-240/2h\n温州100628", "220-2402h温州100628").replace("/2h", "2h").replace("/4h", "4h").replace("70/h", "70h")
+RAW = SAMPLE_ORDERS.replace("220-240/2h\n温州433951", "220-2402h温州433951").replace("/2h", "2h").replace("/4h", "4h").replace("70/h", "70h")
 
 
 @pytest.mark.parametrize("model_fails", [False, True])
@@ -26,17 +26,17 @@ def test_seven_glued_orders_keep_every_number_and_mappable_address(model_fails):
         (110, 120), (60, 70), (175, 175), (70, 80), (80, 80), (100, 100), (90, 90),
     ]
     assert all(not o.price_incomplete and "时薪" not in o.uncertain_fields for o in orders)
-    assert [o.order_number for o in orders if evaluate_order(o, Criteria(min_hourly_rate=150)).match_status != "已排除"] == ["温州100611"]
-    assert orders[-1].address == "模拟街道南丽湾3栋"
-    assert "温州100628" not in orders[0].raw_text
+    assert [o.order_number for o in orders if evaluate_order(o, Criteria(min_hourly_rate=150)).match_status != "已排除"] == ["温州433944"]
+    assert orders[-1].address == "模拟街道合成湾3栋"
+    assert "温州433951" not in orders[0].raw_text
     assert all(evaluate_order(o, Criteria()).match_status != "已排除" for o in orders)
 
 
 def test_existing_session_corrects_trial_mode_without_another_model_call():
-    raw = "初一数学 时间安排：周六下午\n教员要求：第一节课线上试课\n学员地址：模拟街道南丽湾"
-    value = Order(order_id="OLD", raw_text=raw, mode="线上", address="模拟街道南丽湾")
+    raw = "初一数学 时间安排：周六下午\n教员要求：第一节课线上试课\n学员地址：模拟街道合成湾"
+    value = Order(order_id="OLD", raw_text=raw, mode="线上", address="模拟街道合成湾")
     result = evaluate_order(value, Criteria())
-    assert result.mode == "线下" and result.address == "模拟街道南丽湾"
+    assert result.mode == "线下" and result.address == "模拟街道合成湾"
 
 
 @pytest.mark.parametrize("text,mode", [
@@ -51,10 +51,10 @@ def test_trial_fix_preserves_explicit_online_arrangements(text, mode):
 
 
 def test_inline_location_is_masked_without_losing_student_and_subject():
-    raw = "S223080【初中全科瓯海区】梧田街道南丽湾3栋 初3男生，全科比较薄弱，一周5次课，每次2小时"
+    raw = "S556313【初中全科瓯海区】合成街道合成湾3栋 初3男生，全科比较薄弱，一周5次课，每次2小时"
     masked = mask_for_model(raw)
     assert len(masked) == len(raw)
-    assert "南丽湾3栋" not in masked
+    assert "合成湾3栋" not in masked
     assert "初3男生" in masked and "全科" in masked
 
 

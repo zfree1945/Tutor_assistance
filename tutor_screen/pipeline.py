@@ -114,7 +114,11 @@ def process_batch(
                 parsed = extract_order(segment.raw_text, api_key, base_url, model)
                 failures = 0
                 source = "model"
-                normalize_local_fields(parsed, segment.raw_text, local)
+                normalize_local_fields(parsed, segment.raw_text, local, preserve_model_address=True)
+                if "模型地址未通过原文校验" in parsed.uncertain_fields:
+                    note = "模型地址未通过原文校验，已回退本地地址规则，请复核。"
+                elif "地址存在多个候选" in parsed.uncertain_fields:
+                    note = "本地与模型地址不一致，已保留本地明确地址，请核对原文。"
             except ModelReplyError as error:
                 # 模型内容错误只影响这一条，不能让后续正常订单停用模型。
                 failures = 0

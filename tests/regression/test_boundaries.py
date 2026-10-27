@@ -17,7 +17,7 @@ def test_blank_lines_inside_fields_do_not_create_orders(raw):
 
 
 def test_mixed_numbers_duplicate_addresses_and_duplicate_numbers():
-    raws = ["温州100922\n学员：四年级\n地址：相同小区", "S223080【初中全科】线上", "订单号 A100 小学数学 地址：相同小区", "订单号 A100 小学英语 线上"]
+    raws = ["温州433255\n学员：四年级\n地址：相同小区", "S556313【初中全科】线上", "订单号 A100 小学数学 地址：相同小区", "订单号 A100 小学英语 线上"]
     text = "\n".join(raws)
     with patch("tutor_screen.pipeline.extract_order", side_effect=lambda raw, *_: parse_local(raw)):
         orders = process_batch(text, "test-key", "https://example.test", "test-model")

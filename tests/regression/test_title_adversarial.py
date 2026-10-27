@@ -64,8 +64,8 @@ def test_valid_model_exclusions_have_strict_day_schema():
 
 
 def test_school_subject_word_in_location_does_not_add_a_subject():
-    parsed = parse_local("【小学数学，鹿城英语城小区】四年级，每周1次，周六晚上，150/h")
-    assert parsed.subjects == ["数学"] and parsed.address == "鹿城英语城小区"
+    parsed = parse_local("【小学数学，鹿城示例城小区】四年级，每周1次，周六晚上，150/h")
+    assert parsed.subjects == ["数学"] and parsed.address == "鹿城示例城小区"
 
 
 def test_two_glued_subject_headers_without_address_still_split():

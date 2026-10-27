@@ -15,7 +15,7 @@ from tutor_screen.segmentation import split_orders
 
 
 APP = Path(__file__).resolve().parents[2] / "app.py"
-FIRST = """温州26101953
+FIRST = """温州59434286
 地址★测试镇示例学校附近
 学员★高一 男孩
 科目★数学
@@ -23,7 +23,7 @@ FIRST = """温州26101953
 时间★一周1次，一次2个小时，周日早上8-10点
 要求★男大学生，有高中数学辅导经验
 报酬★100一个小时"""
-SECOND = """温州29101232 加急订单
+SECOND = """温州52434565 加急订单
 地址★示例镇合成家园
 学员★高二 男孩
 科目★数学
@@ -31,7 +31,7 @@ SECOND = """温州29101232 加急订单
 时间★一周1次，一次2个小时，周末，时间可协商
 要求★男大学生，有高中数学辅导经验
 报酬★90-100一个小时"""
-THIRD = """温州线下ZYM26101902🍋
+THIRD = """温州线下ZYM59434235🍋
 【年级科目】初三科学
 【辅导地点】测试市示例广场购物中心
 【课费报酬】100/h
@@ -39,7 +39,7 @@ THIRD = """温州线下ZYM26101902🍋
 【学生情况】女孩
 【老师要求】大学生"""
 MERGED = FIRST + "\n\n" + SECOND + "\n" + THIRD
-NUMBERS = ["温州26101953", "温州29101232", "温州线下ZYM26101902"]
+NUMBERS = ["温州59434286", "温州52434565", "温州线下ZYM59434235"]
 
 
 @pytest.mark.parametrize("separator", ["\n", "\n\n", "\r\n"])
@@ -80,7 +80,7 @@ def test_unmarked_repeated_star_fields_still_request_boundary_review():
     assert len(segments) == 1 and segments[0].uncertain
 
 
-@pytest.mark.parametrize("header", ["wz2391♻️", "wz2383，缺英语", "WZ2390", "温州线下zym26101902🍋"])
+@pytest.mark.parametrize("header", ["wz5624♻️", "wz5616，缺英语", "WZ2390", "温州线下zym26101902🍋"])
 def test_numbered_header_variants_keep_the_complete_identifier(header):
     raw = header + "\n信息：小学数学，100/h 线上"
     segments = split_orders(FIRST + "\n" + raw)
@@ -106,7 +106,7 @@ def test_saved_order_repair_keeps_other_model_results_and_avoids_id_collisions()
 
 
 def test_number_references_and_footer_identifiers_do_not_split_single_orders():
-    raw = "S223080【初中数学】线上 100/h\n备注：参考温州29101232 加急订单，仍是同一学员\nS188519-2"
+    raw = "S556313【初中数学】线上 100/h\n备注：参考温州52434565 加急订单，仍是同一学员\nS411842-5"
     order = Order(order_id="ONE", raw_text=raw, extraction_source="model")
     assert len(split_orders(raw)) == 1
     assert repair_merged_orders([order]) == [order]

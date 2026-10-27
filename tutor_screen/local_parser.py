@@ -5,9 +5,11 @@ import re
 from .models import ExtractedOrder, ScheduleOption
 from .segmentation import find_order_markers
 from .pricing import lesson_duration, normalize_price
-from .text_fields import LABEL, read_fields
-from .locations import NOT_LOCATION, location_spans, without_locations
+from .text_fields import read_fields
+from .locations import location_spans, without_locations
 from .schedules import CLAUSE_SEPARATOR, FLEXIBLE, MULTIPLE_LESSONS, clock_windows, inferred_weekly_sessions, read_time_details
+from .address_rules import ONLINE_ADDRESS, valid_address as _valid_local_address, validate_model_address
+from .address_parts import split_address
 
 
 SUBJECT_ALIASES = {
@@ -17,7 +19,7 @@ SUBJECT_ALIASES = {
     "地理": ["地理"],
     "作业辅导": ["作业辅导"],
 }
-LOCAL_FIELDS_REVISION = "2026-10-23-local-address-validation"
+LOCAL_FIELDS_REVISION = "2026-10-26-model-address-extraction"
 AMBIGUOUS_SUBJECTS = ["数理化", "全科", "理科", "文科"]
 DAYS = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "日": 7, "天": 7}
 COUNTS = {**DAYS, "两": 2, "七": 7, "八": 8, "九": 9, "十": 10}
@@ -32,26 +34,6 @@ FIELD_UNCERTAINTY = {
     "time_slots": {"时间段", "time_slots"}, "lesson_hours": {"每次时长", "lesson_hours"},
 }
 ADDRESS_UNCERTAINTY = {"address", "地址待确认", "地址范围", "上课地点"}
-ONLINE_ADDRESS = re.compile(r"(?:线上|网课|远程)(?:辅导|上课|授课|教学)?")
-ADDRESS_NON_LOCATION = re.compile(
-    r"(?:信息|需求|孩子情况|费用|课酬|薪酬|微信(?:号)?|手机号?|电话|联系方式|联系人)\s*[:：★☆]|"
-    r"(?:辅导|补习)(?!中心|学校|机构|班)|作业|教材|讲题|讲课|浙教版|人教版|苏教版|"
-    r"学员|学生|男孩|女孩|男生|女生|[男女](?:老师|大学生)|认真负责|有耐心|"
-    r"基础(?:薄弱|一般|差)|成绩|每周|周末|(?:老师|教师|教员)(?:要求|薪水|课费)|"
-    r"(?<!\d)1[3-9](?:[ \t-]*\d){9}(?!\d)|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|"
-    r"\d+(?:\.\d+)?\s*(?:元(?:/|每)?(?:小时|课时|次)?|/\s*[hH])"
-)
-
-
-def _valid_local_address(value: str | None) -> bool:
-    """只接受可直接定位的单行地点，不从污染候选中猜测或截取地点。"""
-    if not isinstance(value, str) or not value.strip() or len(value) > 160:
-        return False
-    if re.search(r"[\r\n\v\f\x85\u2028\u2029]", value):
-        return False
-    compact = re.sub(r"[ \t\u3000]+", "", value)
-    return not (ONLINE_ADDRESS.fullmatch(compact) or LABEL.search(value)
-                or NOT_LOCATION.search(compact) or ADDRESS_NON_LOCATION.search(value))
 
 
 def _day_number(token: str) -> int:
@@ -128,12 +110,12 @@ def parse_local(text: str) -> ExtractedOrder:
     if addresses:
         data.address = addresses[0].value
         sources["address"] = addresses[0].source
-        if re.search(r"旁边|附近|对面|周边", data.address):
+        if split_address(data.address).relative:
             uncertain.append("地址范围")
     declared_addresses = [field.value for field in fields if field.category == "address"]
     if not declared_addresses:
         declared_addresses = re.findall(r"(?m)^[ \t]*(?:地址|地点)([^\r\n]*)", text)
-    address_supplied = bool(candidates or declared_addresses)
+    address_supplied = bool(candidates or declared_addresses or re.search(r"家住|住在|位于|上课在", text))
     online_only_address = bool(declared_addresses) and all(
         ONLINE_ADDRESS.fullmatch(re.sub(r"[ \t\u3000]+", "", value)) for value in declared_addresses)
     rejected = any(not _valid_local_address(span.value)
@@ -253,7 +235,7 @@ def parse_local(text: str) -> ExtractedOrder:
     return data
 
 
-def normalize_local_fields(order: ExtractedOrder, text: str, local: ExtractedOrder | None = None) -> None:
+def normalize_local_fields(order: ExtractedOrder, text: str, local: ExtractedOrder | None = None, *, preserve_model_address: bool = False) -> None:
     """以原文中明确的本地证据修正模型结果和会话中旧批次的字段。"""
     local = local or parse_local(text)
     known = ["order_number", "grade", "subjects", "lesson_hours"]
@@ -265,12 +247,25 @@ def normalize_local_fields(order: ExtractedOrder, text: str, local: ExtractedOrd
                 order.uncertain_fields = [value for value in order.uncertain_fields if value not in FIELD_UNCERTAINTY.get(field, set())]
     previous_address = order.address
     previously_pending = "地址待确认" in order.uncertain_fields
-    order.address = local.address if _valid_local_address(local.address) else None
+    model_address = validate_model_address(previous_address, text) if preserve_model_address else None
+    if (model_address and local.address and _valid_local_address(local.address)
+            and local.address not in model_address and model_address not in local.address):
+        model_address = None
+        if "地址存在多个候选" not in order.uncertain_fields:
+            order.uncertain_fields.append("地址存在多个候选")
+    order.address = model_address or (local.address if _valid_local_address(local.address) else None)
     order.field_sources.pop("address", None)
     order.uncertain_fields = [value for value in order.uncertain_fields if value not in ADDRESS_UNCERTAINTY]
     if order.address:
-        order.field_sources["address"] = local.field_sources.get("address", "本地原文")
-        order.uncertain_fields.extend(value for value in ("地址范围", "地址待确认") if value in local.uncertain_fields)
+        order.field_sources["address"] = model_address or local.field_sources.get("address", "本地原文")
+        if not model_address:
+            order.uncertain_fields.extend(value for value in ("地址范围", "地址待确认") if value in local.uncertain_fields)
+        if split_address(order.address).relative and "地址范围" not in order.uncertain_fields:
+            order.uncertain_fields.append("地址范围")
+        if model_address and order.mode == "未知" and local.mode == "未知":
+            order.mode = "线下"
+            order.field_sources["mode"] = "原文地址线索"
+            order.uncertain_fields = [value for value in order.uncertain_fields if value not in FIELD_UNCERTAINTY["mode"]]
     elif previous_address or local.address or previously_pending or "地址待确认" in local.uncertain_fields:
         order.uncertain_fields.append("地址待确认")
     if "lesson_hours" in local.field_sources:

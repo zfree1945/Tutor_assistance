@@ -15,14 +15,14 @@ from tutor_screen.privacy import mask_for_model
 from tutor_screen.segmentation import resolve_model_boundaries, split_orders
 
 
-SAMPLE_ORDERS = """温州100922
+SAMPLE_ORDERS = """温州433255
 【上课地址】：温州市某区某路模拟小区
 【辅导科目】：高三数学
 【学员情况】：女孩基础较薄弱
 【时间安排】：两周一次，周六晚上，一次两小时
 【老师要求】：男女不限，经验丰富，有耐心
 【老师课费】：220-240/2h
-温州100628
+温州433951
 学员情况：初一
 辅导科目：数学英语（基础一般 英语作文不会写）
 时间安排：两周一次 周六下午四小时
@@ -30,7 +30,7 @@ SAMPLE_ORDERS = """温州100922
 学员地址：某区某路
 老师薪水：240/4h（后续上的好的话70/h）
 
-温州100611
+温州433944
 学员情况：初一
 辅导科目：科学
 时间安排：周六下午 两周一次
@@ -38,7 +38,7 @@ SAMPLE_ORDERS = """温州100922
 学员地址：模拟小区(某路)
 老师薪水：350/2h
 
-温州092904
+温州325237
 学员情况：初二女
 辅导科目：科学70-75/100
 时间安排：周五周六
@@ -46,7 +46,7 @@ SAMPLE_ORDERS = """温州100922
 学员地址：某区某路模拟店对面
 老师薪水：140-160/2h
 
-温州092884
+温州325117
 学员情况：初一男
 辅导科目：科学( 基础较好）
 时间安排：周六十点后
@@ -54,46 +54,46 @@ SAMPLE_ORDERS = """温州100922
 学员地址：某区模拟小区附近
 老师薪水：160/2h
 
-温州092701
+温州325034
 上课地址：某区某路模拟小区710
 年级科目：高二物化技 女（主物化）
 时间安排：一周一次 周六晚上六点或者周日早上八点 一次两小时
 老师要求：女老师 经验丰富
 老师课费：大学生200/2h
 
-S223080【初中全科某区】模拟街道南丽湾3栋 初3男生，全科比较薄弱需要全科补习 查漏补缺+作业辅导，一周5次课，每次2小时，周一到周五晚上，180/2h，要求教学经验丰富的 细心责任心较强的 能够辅导初中全科的大学生"""
+S556313【初中全科某区】模拟街道合成湾3栋 初3男生，全科比较薄弱需要全科补习 查漏补缺+作业辅导，一周5次课，每次2小时，周一到周五晚上，180/2h，要求教学经验丰富的 细心责任心较强的 能够辅导初中全科的大学生"""
 
-EXPECTED_NUMBERS = ["温州100922", "温州100628", "温州100611", "温州092904", "温州092884", "温州092701", "S223080"]
+EXPECTED_NUMBERS = ["温州433255", "温州433951", "温州433944", "温州325237", "温州325117", "温州325034", "S556313"]
 
 
 def test_seven_orders_with_no_blank_line_between_first_two():
     segments = split_orders(SAMPLE_ORDERS)
     assert len(segments) == 7
     assert [parse_local(s.raw_text).order_number for s in segments] == EXPECTED_NUMBERS
-    assert "温州100628" not in segments[0].raw_text
+    assert "温州433951" not in segments[0].raw_text
     assert "220-240/2h" in segments[0].raw_text
     assert "后续上的好的话70/h" in segments[1].raw_text
 
 
 def test_fully_glued_numbered_orders_are_not_merged():
-    glued = "温州100922【辅导科目】：高三数学【老师课费】：220-240/2h温州100628学员情况：初一辅导科目：数学英语老师薪水：240/4h"
+    glued = "温州433255【辅导科目】：高三数学【老师课费】：220-240/2h温州433951学员情况：初一辅导科目：数学英语老师薪水：240/4h"
     segments = split_orders(glued)
     assert len(segments) == 2
     assert segments[0].raw_text.endswith("220-240/2h")
-    assert segments[1].raw_text.startswith("温州100628")
+    assert segments[1].raw_text.startswith("温州433951")
 
 
 def test_numbered_and_unnumbered_orders_and_duplicate_numbers_are_kept():
-    text = "温州100922\n辅导科目：高三数学\n\n学员情况：初一\n辅导科目：英语\n\n温州100922\n辅导科目：初二科学"
+    text = "温州433255\n辅导科目：高三数学\n\n学员情况：初一\n辅导科目：英语\n\n温州433255\n辅导科目：初二科学"
     segments = split_orders(text)
     assert len(segments) == 3
     assert segments[1].raw_text.startswith("学员情况")
-    assert segments[0].raw_text.startswith("温州100922")
-    assert segments[2].raw_text.startswith("温州100922")
+    assert segments[0].raw_text.startswith("温州433255")
+    assert segments[2].raw_text.startswith("温州433255")
 
 
 def test_ambiguous_block_is_checked_even_if_batch_has_blank_lines():
-    text = "学员情况：高三\n辅导科目：数学\n老师薪水：220/2h\n学员情况：初一\n辅导科目：英语\n老师薪水：240/4h\n\nS223080【初中全科】180/2h"
+    text = "学员情况：高三\n辅导科目：数学\n老师薪水：220/2h\n学员情况：初一\n辅导科目：英语\n老师薪水：240/4h\n\nS556313【初中全科】180/2h"
     segments = split_orders(text)
     assert len(segments) == 2
     assert segments[0].uncertain

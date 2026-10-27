@@ -86,7 +86,7 @@ def test_eighth_address_failure_does_not_stall_twenty_address_queue(state, monke
         calls.append(address)
         if address == values[7].address and fail[0]:
             return httpx.Response(200, json={"status": "0", "infocode": "10016", "info": "SERVER_IS_BUSY"})
-        return httpx.Response(200, json={"status": "1", "geocodes": [{"location": "120.7,28", "level": "门牌号", "city": "温州"}]})
+        return httpx.Response(200, json={"status": "1", "geocodes": [{"formatted_address": "温州市" + address, "location": "120.7,28", "level": "门牌号", "city": "温州"}]})
     monkeypatch.setattr(map_ui, "_client", lambda: AmapClient("synthetic", transport=httpx.MockTransport(handler)))
     for _ in range(25):
         map_ui.sync_auto_batch(values)

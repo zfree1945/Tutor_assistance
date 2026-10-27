@@ -8,7 +8,7 @@ from streamlit.testing.v1 import AppTest
 
 from tutor_screen import map_store, map_ui
 from tutor_screen.local_parser import LOCAL_FIELDS_REVISION
-from tutor_screen.maps import GeoPoint, GeoResult, MapCredentials
+from tutor_screen.maps import GeoPoint, GeoResult, MapCredentials, LOCATION_REVISION
 from tutor_screen.models import Order
 
 APP = Path(__file__).resolve().parents[2] / "app.py"
@@ -124,7 +124,7 @@ def test_restored_batch_and_refresh_use_the_same_three_segment_sort(monkeypatch)
 
 
 def test_without_map_keys_original_orders_and_filters_still_work():
-    value = order("MAP100", "八仙楼小区")
+    value = order("MAP100", "合成楼小区")
     app = open_results([value])
     assert any(element.value == value.raw_text for element in app.text)
     app.radio(key="nav_widget").set_value("订单导入").run()
@@ -154,7 +154,7 @@ def test_empty_results_links_to_import_filters_without_service_calls():
 
 def test_ordinary_render_navigation_and_filtering_reuse_initial_auto_query():
     configure_maps()
-    app = open_results([order("MAP100", "八仙楼小区")])
+    app = open_results([order("MAP100", "合成楼小区")])
     with patch("tutor_screen.maps.AmapClient.locate") as locate, patch("tutor_screen.maps.AmapClient.search") as search, patch("tutor_screen.maps.AmapClient.commute") as commute:
         app.run()
         app.radio(key="nav_widget").set_value("订单导入").run()
@@ -247,7 +247,7 @@ def test_distance_sort_defaults_and_reset_use_nearest_first_and_unknown_last():
 def test_auto_query_only_includes_unresolved_applied_filtered_addresses():
     configure_maps()
     cached, unknown, excluded = order("CACHED", "已定位小区"), order("UNKNOWN", "新小区"), order("EXCLUDED", "不符合小区", rate=50)
-    map_store.save_geo(cached.address, "温州", GeoResult(status="located", candidates=[GeoPoint(lng=120.7, lat=28.0, city="温州")]))
+    map_store.save_geo(cached.address, "温州", GeoResult(status="located", resolver_revision=LOCATION_REVISION, candidates=[GeoPoint(lng=120.7, lat=28.0, city="温州")]))
     app = AppTest.from_file(APP, default_timeout=20)
     app.session_state["page"] = "筛选结果"
     app.session_state["orders"] = [cached, unknown, excluded]
@@ -267,7 +267,7 @@ def test_auto_query_only_includes_unresolved_applied_filtered_addresses():
 
 def test_deleting_order_history_preserves_saved_origins_and_map_settings():
     origin = configure_maps()
-    app = open_results([order("MAP100", "八仙楼小区")])
+    app = open_results([order("MAP100", "合成楼小区")])
     app.radio(key="nav_widget").set_value("开发日志").run()
     app.button(key="clear_history").click().run()
     app.button(key="confirm_clear_history").click().run()
@@ -278,7 +278,7 @@ def test_deleting_order_history_preserves_saved_origins_and_map_settings():
 
 def test_removed_inspector_and_commute_controls_do_not_return_after_card_selection():
     configure_maps()
-    value = order("MAP100", "八仙楼小区")
+    value = order("MAP100", "合成楼小区")
     app = open_results([value])
     with patch("tutor_screen.maps.AmapClient.commute") as commute:
         app.button(key=f"map_locate_{value.order_id}").click().run()
@@ -310,17 +310,17 @@ def test_selecting_another_card_discards_previous_candidates_and_picked_point():
 
 
 def test_map_settings_and_origin_search_save_survive_new_session_without_automatic_requests():
-    app = AppTest.from_file(APP, default_timeout=20).run()
-    app.radio(key="nav_widget").set_value("地图设置").run()
+    from test_map_setup import setup_app, origin_event
+    app = setup_app()
     for key, value in {"map_js_key": "SYNTHETIC-JS", "map_security_code": "SYNTHETIC-SECURITY", "map_web_key": "SYNTHETIC-WEB-PRIVATE", "map_default_city": "温州市"}.items():
         app.text_input(key=key).set_value(value)
     app.button(key="map_save_settings").click().run()
     assert not app.exception and map_store.load_settings().default_city == "温州市"
     app.text_input(key="map_origin_name").set_value("学校")
-    app.text_input(key="map_origin_query").set_value("测试学校")
     with patch("tutor_screen.maps.AmapClient.search", return_value=[GeoPoint(lng=120.7, lat=28.0, city="温州市", label="测试学校")]) as search:
-        app.button(key="map_origin_search").click().run()
+        origin_event(app, query="测试学校")
         search.assert_called_once_with("测试学校", "温州市")
+    origin_event(app, selection={"query": "测试学校", "index": 0})
     app.button(key="map_origin_save").click().run()
     assert not app.exception and [value.name for value in map_store.list_origins()] == ["学校"]
     reopened = AppTest.from_file(APP, default_timeout=20).run()
@@ -333,7 +333,7 @@ def test_map_settings_and_origin_search_save_survive_new_session_without_automat
 
 
 def test_order_raw_is_available_but_collapsed_for_compact_browsing():
-    value = order("MAP100", "八仙楼小区")
+    value = order("MAP100", "合成楼小区")
     app = open_results([value])
     raw = next(item for item in app.expander if item.label == "查看原始订单")
     assert raw.proto.expanded is False

@@ -64,7 +64,7 @@ def fake_request(self, endpoint, params):
         raise MapAPIError("高德额度达到限制，已暂停后续查询。",quota_exhausted=True)
     if endpoint=="geocode":
         address=params["address"]
-        locations={"八仙楼小区":"120.701,28.001", "大学城小区":"120.90,28.20"}
+        locations={"合成楼小区":"120.701,28.001", "大学城小区":"120.90,28.20"}
         if address=="同名小区":
             geocodes=[{"formatted_address":"温州市同名小区东区","location":"120.705,28.005","city":"温州市","level":"住宅区"},
                       {"formatted_address":"温州市同名小区西区","location":"120.806,28.106","city":"温州市","level":"住宅区"}]
@@ -87,7 +87,7 @@ if not (root/"qa_seeded").exists():
     (root/"qa_seeded").write_text("synthetic test data only",encoding="utf-8")
 if not st.session_state.get("qa_orders_seeded"):
     orders=[]
-    for i,address in enumerate(["八仙楼小区","大学城小区","同名小区"],1):
+    for i,address in enumerate(["合成楼小区","大学城小区","同名小区"],1):
         orders.append(Order(order_id=f"ORD-MAP{i}",order_number=f"MAP{i}",raw_text=f"订单号 MAP{i} 小学数学 150/h 线下 周六晚上 每周1次 每次2小时 地址：{address}",
           grade="小学",subjects=["数学"],hourly_rate=150,mode="线下",days=[6],weekly_sessions=1,lesson_hours=2,time_slots=["晚上"],address=address,
           teacher_gender="不限",match_status="明确匹配",extraction_source="model"))

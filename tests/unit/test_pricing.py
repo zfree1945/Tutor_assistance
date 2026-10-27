@@ -58,7 +58,7 @@ def test_conditional_future_price_is_not_treated_as_the_only_rate():
 
 
 def test_local_price_overrides_wrong_model_price_before_filtering():
-    text = "S223080【初中全科】初3男生，一周5次课，每次2小时，周一到周五晚上，1802h"
+    text = "S556313【初中全科】初3男生，一周5次课，每次2小时，周一到周五晚上，1802h"
     wrong = ExtractedOrder(grade="初中", subjects=["全科"], hourly_rate=180, uncertain_fields=["时薪", "上课方式"])
     with patch("tutor_screen.pipeline.extract_order", return_value=wrong):
         orders = process_batch(text, "dummy", "https://example.test", "dummy")
@@ -68,7 +68,7 @@ def test_local_price_overrides_wrong_model_price_before_filtering():
 
 
 def test_applying_filters_repairs_previously_parsed_batch_without_api_calls():
-    text = "S223080【初中全科】初3男生，一周5次课，每次2小时，周一到周五晚上，1802h"
+    text = "S556313【初中全科】初3男生，一周5次课，每次2小时，周一到周五晚上，1802h"
     old_order = Order(order_id="ORD-0007", raw_text=text, grade="初中", subjects=["全科"], hourly_rate=None, uncertain_fields=["时薪"], extraction_source="local")
     app = AppTest.from_file(Path(__file__).resolve().parents[2] / "app.py")
     app.session_state["page"] = "筛选结果"

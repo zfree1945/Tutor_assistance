@@ -16,8 +16,8 @@ from tutor_screen.privacy import mask_for_model
 from tutor_screen.segmentation import split_orders
 
 
-ORDER_54 = """温州26100954
-〖地址〗龙港市-世纪大道模拟小区东苑
+ORDER_54 = """温州59433287
+〖地址〗龙港市-合成大道模拟小区东苑
 〖学员〗四年级女生
 〖科目〗语文
 〖情况〗阅读理解
@@ -25,7 +25,7 @@ ORDER_54 = """温州26100954
 〖要求〗女专职老师，有经验认真负责，需要认真负责，上课不要太死板
 〖待遇〗上门150元一个小时
 线上辅导130一个小时（本地）"""
-ORDER_45 = """温州26100945
+ORDER_45 = """温州59433278
 〖地址〗永嘉县上塘镇模拟大厦
 〖学员〗初三男
 〖科目〗科学数学英语
@@ -71,7 +71,7 @@ def test_second_screenshot_does_not_invent_monday_or_a_time_slot():
 
 @pytest.mark.parametrize("start,end", [("〖", "〗"), ("【", "】"), ("[", "]"), ("〔", "〕"), ("［", "］"), ("「", "」")])
 def test_bracket_formats_are_parsed_and_address_is_masked(start, end):
-    raw = f"温州26100954\n{start}地址{end}测试小区东苑\n{start}学员{end}四年级女生\n{start}科目{end}语文"
+    raw = f"温州59433287\n{start}地址{end}测试小区东苑\n{start}学员{end}四年级女生\n{start}科目{end}语文"
     parsed = parse_local(raw)
     assert parsed.address == "测试小区东苑"
     assert parsed.grade == "小学"
@@ -133,7 +133,7 @@ def test_null_and_pending_model_lists_are_accepted_as_unknown():
 
 
 def test_bad_model_records_do_not_disable_model_for_remaining_orders():
-    raw = "\n\n".join(f"温州2610095{i}\n小学数学 线上 100/h 周六晚上" for i in range(4))
+    raw = "\n\n".join(f"温州5943328{i}\n小学数学 线上 100/h 周六晚上" for i in range(4))
     with patch("tutor_screen.pipeline.extract_order", side_effect=[ModelReplyError("模型字段格式校验失败：时间段")] * 3 + [ExtractedOrder(grade="小学", subjects=["数学"])]) as extract:
         orders = process_batch(raw, "dummy", "https://example.test", "dummy")
     assert extract.call_count == 4

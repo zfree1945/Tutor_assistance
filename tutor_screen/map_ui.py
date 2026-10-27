@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from html import escape
 import time
 from collections.abc import Callable
 from urllib.parse import urlencode
@@ -10,6 +11,7 @@ from urllib.parse import urlencode
 import streamlit as st
 
 from tutor_screen import map_store as store
+from tutor_screen.origin_search import render_origin_search
 from tutor_screen.maps import AmapClient, GeoPoint, GeoResult, MapAPIError, MapCredentials, distance_km, LOCATION_REVISION
 
 
@@ -147,16 +149,26 @@ def filter_orders(orders: list) -> list:
     return result
 
 
+def _origin_label(origin: store.SavedOrigin) -> str:
+    address = origin.point.label.strip()
+    if not address or address == origin.name:
+        address = "详细地址未保存，请重新选择地点"
+    return f"{origin.name} · {address} · {origin.point.city or '城市未标注'}"
+
+
 def filter_widgets() -> None:
     ensure_state()
     origins = st.session_state.map_origins
     options = [""] + [o.id for o in origins]
-    labels = {o.id: o.name for o in origins}
+    labels = {o.id: _origin_label(o) for o in origins}
     if st.session_state.map_origin_draft not in options:
         st.session_state.map_origin_draft = ""
     with st.container(key="map_filter_controls"):
         row = st.columns(2)
         row[0].selectbox("出发点", options, format_func=lambda x: labels.get(x, "未设置出发点"), key="map_origin_draft", persist_state="session")
+        credentials = st.session_state.map_settings.credentials
+        if (credentials.web_key.strip() or credentials.js_key.strip()) and not st.session_state.map_origin_draft:
+            row[0].markdown('<div class="origin-selection-warning" role="alert">请选择出发点；如尚未添加，请先到“地图设置”保存常用出发点。</div>', unsafe_allow_html=True)
         row[1].selectbox("订单排序", ["距离由近到远", "原始顺序"], key="map_sort_draft", persist_state="session")
         st.caption("改动后点击“应用筛选”统一更新。距离仅用于展示和排序，距离未知的订单保留。")
         if not origins:
@@ -202,7 +214,9 @@ def prepare_batch(orders: list) -> dict:
         if not order.address or order.mode == "线上":
             continue
         cached = lookup_geo(order)
-        if cached is None or cached.status == "failed" or (cached.status in {"ambiguous", "not_found"} and getattr(cached, "resolver_revision", 1) < LOCATION_REVISION):
+        stale = (cached is not None and getattr(cached, "resolver_revision", 1) < LOCATION_REVISION
+                 and not any(point.source == "user" for point in cached.candidates))
+        if cached is None or cached.status == "failed" or stale:
             unique[_geo_key(order.address, current_city())] = {"address": order.address, "city": current_city()}
     return {"pending": list(unique.values()), "total": len(unique), "done": 0, "running": False, "cancelled": False, "stopped": "", "failures": []}
 
@@ -601,6 +615,13 @@ def render_inspector(orders: list, refresh: Callable[[], None]) -> None:
         st.caption("历史查询结果，仅供参考。刷新仅查询当前交通方式。" if found else "尚无通勤结果，选择一种方式后主动查询。")
 
 
+def _same_origin_city(default_city: str, point: GeoPoint | None) -> bool:
+    """Treat 福州/福州市 as the same city; never guess from a POI name."""
+    if point is None or not point.city.strip():
+        return True
+    return default_city.strip().removesuffix("市") == point.city.strip().removesuffix("市")
+
+
 def settings_page() -> None:
     ensure_state()
     st.title("地图设置")
@@ -623,6 +644,7 @@ def settings_page() -> None:
         left, right = st.columns(2)
         left.text_input("Web 服务 API Key", type="password", key="map_web_key", persist_state="session")
         right.text_input("默认城市", key="map_default_city", placeholder="例如：温州市", persist_state="session")
+        city_feedback = right.empty()
         st.caption("需要分别申请 Web 端（JS API）和 Web 服务两个 Key：前者显示地图，后者查询地点。保存设置不会发起查询。")
         st.markdown("[申请高德凭据](https://console.amap.com/dev/key/app) · [配置说明](https://lbs.amap.com/api/javascript-api-v2/prerequisites)")
         st.checkbox("已确认账号许可允许长期缓存接口结果，启用本机持久缓存", key="map_persist_cache", persist_state="session")
@@ -646,49 +668,36 @@ def settings_page() -> None:
         st.caption("保存学校、住处等常用地点，在筛选结果中选择本次出发点。")
         left, right = st.columns(2)
         left.text_input("出发点名称", key="map_origin_name", placeholder="例如：学校 / 住处", persist_state="session")
-        right.text_input("搜索出发点", key="map_origin_query", placeholder="输入学校、小区、地铁站", persist_state="session")
-        with st.container(horizontal=True):
-            if st.button("搜索出发点", key="map_origin_search", disabled=not bool(st.session_state.map_settings.credentials.web_key)):
-                try:
-                    st.session_state.map_origin_candidates = _client().search(st.session_state.map_origin_query.strip(), st.session_state.map_settings.default_city)
-                    if not st.session_state.map_origin_candidates:
-                        st.info("没有找到候选地点，可以改写关键词或在地图选点。")
-                except MapAPIError as exc:
-                    st.warning(str(exc))
-            if st.button("在地图选择出发点", key="map_pick_origin"):
-                st.session_state.map_picking = "origin"
-                st.session_state.pop("map_picked_point", None)
-        candidates = st.session_state.map_origin_candidates
-        point = None
-        if candidates:
-            idx = st.selectbox("出发点候选", range(len(candidates)), format_func=lambda i: f"{candidates[i].label} · {candidates[i].city}", key="map_origin_candidate")
-            point = candidates[idx]
-        if st.session_state.map_picking == "origin":
-            render_map_panel([])
-        if st.session_state.get("map_picked_point"):
-            point = st.session_state.map_picked_point
-            st.caption(f"地图选点：{point.lng:.6f}, {point.lat:.6f}")
-        if point and st.button("保存常用出发点", key="map_origin_save"):
+        with right:
+            point = render_origin_search()
+        city_message = ""
+        if not _same_origin_city(st.session_state.map_default_city, point):
+            city_message = f"出发点位于{point.city}，请重新填写默认城市，使其与出发点城市一致。"
+        elif not _same_origin_city(st.session_state.map_settings.default_city, point):
+            city_message = "默认城市已修改，请先保存地图设置。"
+        if city_message:
+            city_feedback.markdown(f'<div class="origin-city-warning" role="alert">{escape(city_message)}</div>', unsafe_allow_html=True)
+        if point and st.button("保存常用出发点", key="map_origin_save", disabled=bool(city_message)):
             try:
                 if not st.session_state.map_origin_name.strip():
                     st.warning("请给出发点填写一个名称。")
                 elif not st.session_state.map_settings.default_city:
                     st.warning("请先保存默认城市。")
                 else:
-                    store.save_origin(st.session_state.map_origin_name.strip(), point.model_copy(update={"label": st.session_state.map_origin_name.strip()}))
+                    store.save_origin(st.session_state.map_origin_name.strip(), point)
                     st.session_state.map_origins = store.list_origins()
-                    st.session_state.map_origin_candidates = []
+                    st.session_state.map_origin_selected = None
                     st.session_state.pop("map_picked_point", None)
                     st.success("出发点已保存。到筛选结果选择出发点并应用筛选。")
                     st.rerun()
             except store.MapStoreError as exc:
                 st.error(str(exc))
         if not st.session_state.map_origins:
-            st.caption("还没有常用出发点，搜索地点或在地图中选择后即可保存。")
+            st.caption("还没有常用出发点，输入关键词并选择确切地点后即可保存。")
         for origin in st.session_state.map_origins:
             with st.container(border=True, key=f"map_saved_origin_{origin.id}"):
                 left, right = st.columns([4, 1], vertical_alignment="center")
-                left.write(f"{origin.name} · {origin.point.city or '城市未标注'}")
+                left.write(_origin_label(origin))
                 if right.button("删除", key=f"map_delete_origin_{origin.id}"):
                     try:
                         store.delete_origin(origin.id)

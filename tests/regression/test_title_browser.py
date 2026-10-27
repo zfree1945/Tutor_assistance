@@ -56,7 +56,7 @@ def test_user_order_addresses_exclusions_and_download_in_browser(isolated_server
         assert [row["address"] for row in rows] == [item["address"] for item in EXPECTED]
         assert [row["raw_text"] for row in rows] == RAWS
         assert "1-3点" in rows[0]["excluded_times"]
-        assert rows[0]["order_number"] == "S188519-2"
+        assert rows[0]["order_number"] == "S411842-5"
         assert rows[1]["lesson_hours"] == "2.5"
         assert "dummy-title-browser-key" not in decoded
         assert not page.locator('[data-testid="stException"]').count()

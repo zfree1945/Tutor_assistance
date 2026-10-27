@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from tutor_screen import map_store
 from tutor_screen.map_store import MapSettings
 from tutor_screen.maps import (
-    AmapClient, CommuteResult, GeoPoint, GeoResult, MapAPIError,
+    AmapClient, CommuteResult, GeoPoint, GeoResult, LOCATION_REVISION, MapAPIError,
     MapCredentials, clean_query, distance_km,
 )
 
@@ -151,9 +151,11 @@ def test_coarse_geocode_uses_poi_only_when_name_city_and_district_agree(poi_name
             return httpx.Response(200, json={"status":"1","geocodes":[geocode("120.7,28", level="乡镇", name="温州市鹿城区滨江街道", city="温州市")]})
         return httpx.Response(200, json={"status":"1","pois":[{"name":poi_name,"cityname":poi_city,"adname":poi_district,"address":poi_address,"location":"120.71,28.01"}]})
     result = AmapClient("synthetic", transport=httpx.MockTransport(handler)).locate("温州市鹿城区襟江路华润置地九宸园", "温州市")
-    assert result.status == expected and result.resolver_revision == 3
-    assert len(calls) == 2
-    assert calls[1].url.params["keywords"] == "鹿城区华润置地九宸园"
+    assert result.status == expected and result.resolver_revision == LOCATION_REVISION
+    assert len(calls) == 3
+    assert calls[1].url.params["address"] == "鹿城区"
+    assert calls[2].url.params["keywords"] == "华润置地九宸园"
+    assert calls[2].url.params["citylimit"] == "true"
 
 
 @pytest.mark.parametrize("road,expected", [("人民路", "located"), ("学院路", "ambiguous")])
@@ -169,7 +171,7 @@ def test_chain_landmark_must_match_original_road(road, expected):
 def test_search_missing_or_list_values_do_not_become_strings():
     result = mock_client({"status": "1", "pois": [{"name": "学校", "location": "116.3,39.8", "address": [], "cityname": [], "adname": []}]}).search("学校", "北京")
     assert result[0].label == "学校"
-    assert result[0].city == "北京"
+    assert result[0].city == ""  # 缺失的返回字段不能用请求城市冒充。
 
 
 @pytest.mark.parametrize("code", ["10003", "10004", "10010", "10014", "10015", "10019", "10020", "10021", "10029", "10044", "10045", "40000", "40002", "40003"])

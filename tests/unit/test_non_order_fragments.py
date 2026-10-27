@@ -12,9 +12,9 @@ from tutor_screen.segmentation import Segment, find_order_markers
 APP = Path(__file__).resolve().parents[2] / "app.py"
 SAMPLE = (Path(__file__).parent / "fixtures/sixteen_orders_with_decoration.txt").read_text(encoding="utf-8")
 NUMBERS = {
-    "温州26102008", "温州26101953", "温州29101232", "温州线下ZYM26101902",
-    "温州线下26102003", "wz2391", "wz2390", "wz2386", "wz2383", "wz2381",
-    "wz2379", "wz2377", "wz2359", "wz2350", "温州102064", "温州线上102111",
+    "温州59435331", "温州59434286", "温州52434565", "温州线下ZYM59434235",
+    "温州线下59435336", "wz5624", "wz5623", "wz5619", "wz5616", "wz5614",
+    "wz5602", "wz5600", "wz5682", "wz5683", "温州435397", "温州线上435444",
 }
 
 

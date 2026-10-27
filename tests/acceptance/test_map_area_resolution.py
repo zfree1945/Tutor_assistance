@@ -55,12 +55,13 @@ def test_verified_landmark_nearby_becomes_area_reference(landmark, relative):
     assert result.area_point is not None and result.area_point.label == landmark
     assert result.area_point.precision == "area"
     assert result.area_point.area_scale == "small"
-    assert len(calls) == 2
+    assert len(calls) == 3
+    assert calls[1][1]["address"] == "鹿城区"  # 补查区县编码后再搜索地标。
 
 
 @pytest.mark.parametrize("address,name,district,landmark", [
-    ("瓯海区南白象近万象城", "温州万象城", "瓯海区", "万象城"),
-    ("苍南灵溪三中附近", "灵溪三中", "苍南县", "苍南灵溪三中"),
+    ("瓯海区合成桥近示例城", "温州示例城", "瓯海区", "示例城"),
+    ("苍南合成三中附近", "合成三中", "苍南县", "苍南合成三中"),
 ])
 def test_short_nearby_and_school_names_match_unique_poi(address, name, district, landmark):
     assert _landmark(address) == landmark
@@ -73,20 +74,20 @@ def test_short_nearby_and_school_names_match_unique_poi(address, name, district,
     assert result.area_point and result.area_point.label == landmark
     assert result.area_point.area_scale == "small"
     assert result.area_point.precision == "area"
-    assert len(calls) == 2
+    assert len(calls) == (3 if address.startswith("瓯海区") else 2)
 
 
 @pytest.mark.parametrize("school", ["一中", "二中", "三中", "十小", "12中", "3小"])
 def test_school_abbreviations_are_landmarks(school):
-    assert _landmark("苍南县灵溪" + school + "附近") == "灵溪" + school
+    assert _landmark("苍南县合成" + school + "附近") == "合成" + school
 
 
 @pytest.mark.parametrize("address,landmark,queries", [
-    ("瓯海区南白象近万象城", "万象城", ["瓯海区"]),
-    ("瓯海区南白象近万象城附近", "万象城", ["瓯海区"]),
-    ("瓯海区近万象城", "万象城", ["瓯海区"]),
-    ("南白象街道近万象城", "万象城", ["南白象街道"]),
-    ("瓯海区南白象近示例路万象城", "万象城", ["瓯海区"]),
+    ("瓯海区合成桥近示例城", "示例城", ["瓯海区"]),
+    ("瓯海区合成桥近示例城附近", "示例城", ["瓯海区"]),
+    ("瓯海区近示例城", "示例城", ["瓯海区"]),
+    ("合成桥街道近示例城", "示例城", ["合成桥街道"]),
+    ("瓯海区合成桥近示例路示例城", "示例城", ["瓯海区"]),
     ("近江花园", "近江花园", []),
     ("上城区近江花园", "近江花园", ["上城区"]),
     ("上城区近江路示例学校", "示例学校", ["上城区近江路", "上城区"]),
@@ -98,7 +99,7 @@ def test_near_separator_requires_context_and_preserves_proper_names(address, lan
 
 
 @pytest.mark.parametrize("address,nearby", [
-    ("瓯海区南白象近万象城", True),
+    ("瓯海区合成桥近示例城", True),
     ("上城区近江花园", False),
     ("上城区近江路28号", False),
 ])
@@ -145,7 +146,7 @@ def test_missing_building_falls_back_to_explicit_road_before_district():
     result = client.locate("鹿城区人民路示例公寓3栋", "温州市")
     assert result.area_point and result.area_point.label == "温州市鹿城区人民路"
     assert result.area_point.area_scale == "medium"
-    assert [params.get("address") for path, params in calls if path.endswith("geocode/geo")] == ["鹿城区人民路示例公寓3栋", "鹿城区人民路"]
+    assert [params.get("address") for path, params in calls if path.endswith("geocode/geo")] == ["鹿城区人民路示例公寓3栋", "鹿城区", "鹿城区人民路"]
     assert all(set(params) <= {"address", "city", "key", "keywords", "offset", "page", "extensions", "citylimit"} for _, params in calls)
 
 

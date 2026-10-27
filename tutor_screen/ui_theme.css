@@ -1,6 +1,14 @@
 /* The native theme owns colors for controls. Scope layout rules to stable
    test IDs and application keys rather than generated Streamlit class names. */
 .stApp {font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+.origin-city-warning,.origin-selection-warning {color:#c62828;font-size:.875rem;line-height:1.6;overflow-wrap:anywhere}
+/* Match the native origin name field to the adjacent autocomplete control. */
+.st-key-map_origin_name [data-testid="stWidgetLabel"] {
+  display:block;min-height:0;margin:0 0 8px;font-size:14px;line-height:1.6;
+}
+.st-key-map_origin_name [data-testid="stWidgetLabel"] p {font-size:14px;line-height:1.6;margin:0}
+.st-key-map_origin_name [data-testid="stTextInputRootElement"] {min-height:0;height:40.4px}
+.st-key-map_origin_name input {font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-size:14px;line-height:1.6;padding:8px 10px}
 [data-testid="stMainBlockContainer"] {max-width:1600px;padding:2rem 2.3rem 3rem}
 [data-testid="stHeader"] {background:transparent}
 [data-testid="stToolbar"] {opacity:.45}

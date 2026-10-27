@@ -8,15 +8,15 @@ from test_map_browser import APP_WRAPPER, SDK, close_mobile_sidebar
 
 ARTIFACTS = ROOT / "artifacts/acceptance/results_split"
 SEED = '''if not st.session_state.get("qa_split_orders"):
-    from tutor_screen.maps import GeoResult
+    from tutor_screen.maps import GeoResult, LOCATION_REVISION
     orders = []
     for i in range(1, 8):
-        raw = f"订单号 SIX{i}\\n年级科目：小学数学\\n地址：八仙楼小区\\n时间：周六晚上，每周1次，每次2小时\\n报酬：150/h\\n要求：男女不限\\n备注：" + "细心讲解，巩固知识。" * 80
+        raw = f"订单号 SIX{i}\\n年级科目：小学数学\\n地址：合成楼小区\\n时间：周六晚上，每周1次，每次2小时\\n报酬：150/h\\n要求：男女不限\\n备注：" + "细心讲解，巩固知识。" * 80
         orders.append(st.session_state.orders[0].model_copy(deep=True, update={
             "order_id": f"SIX{i}", "order_number": f"SIX{i}", "raw_text": raw}))
     st.session_state.orders = orders
     st.session_state.filtered = orders
-    map_store.save_geo("八仙楼小区", "温州市", GeoResult(status="located", resolver_revision=3,
+    map_store.save_geo("合成楼小区", "温州市", GeoResult(status="located", resolver_revision=LOCATION_REVISION,
         candidates=[GeoPoint(lng=120.701, lat=28.001, city="温州市", precision="exact")]))
     st.session_state._parse_summary = "解析完成：共 7 条，成功 7 条，失败 0 条"
     st.session_state.qa_split_orders = True

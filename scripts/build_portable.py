@@ -138,7 +138,7 @@ def validate_bundle(root: Path) -> None:
             raise ValueError(f"Private or generated path in portable bundle: {relative.as_posix()}")
         if file.is_file() and (file.name.startswith(".env") or file.name == "secrets.toml" or file.suffix in {".sqlite", ".sqlite3", ".db", ".dpapi", ".pyc"}):
             raise ValueError(f"Private or generated file in portable bundle: {relative.as_posix()}")
-    for name in ("runtime/python.exe", "runtime/python312._pth", "app/app.py", "app/tutor_screen/map_frontend.js", "快速开始.bat"):
+    for name in ("runtime/python.exe", "runtime/python312._pth", "app/app.py", "app/tutor_screen/map_frontend.js", "快速开始.bat", "LICENSE"):
         if not (root / name).is_file():
             raise ValueError(f"Missing portable runtime resource: {name}")
 
@@ -156,14 +156,15 @@ def build(source: Path, output: Path) -> Path:
         raise RuntimeError("Build this package on Windows x64 using Python 3.12.")
     source, output = source.resolve(), output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    archive = output / "家教筛单器-v1.0.2-Windows-x64.zip"
+    archive = output / "家教筛单器-v1.0.3-Windows-x64.zip"
     if archive.exists():
         raise FileExistsError("Refusing to overwrite an existing portable release; choose a new output directory.")
     distributions = dependency_closure(runtime_requirements(source / "requirements.txt"))
     print(f"Packaging Python {platform.python_version()} and {len(distributions)} runtime distributions.", flush=True)
     with tempfile.TemporaryDirectory(prefix="tutor_portable_build_") as temporary:
-        root = Path(temporary) / "TutorAssistant-v1.0.2"
+        root = Path(temporary) / "TutorAssistant-v1.0.3"
         root.mkdir()
+        shutil.copy2(source / "LICENSE", root / "LICENSE")
         copy_application(source, root / "app")
         copy_python(Path(sys.base_prefix), root / "runtime")
         for name, distribution in sorted(distributions.items()):
@@ -171,7 +172,7 @@ def build(source: Path, output: Path) -> Path:
             print(f"  {name}: {count} files", flush=True)
         (root / "快速开始.bat").write_bytes(BAT.replace("\n", "\r\n").encode("ascii"))
         (root / "使用说明.txt").write_text(
-            "家教筛单器 v1.0.2 · Windows x64 自带环境启动包\n\n"
+            "家教筛单器 v1.0.3 · Windows x64 自带环境启动包\n\n"
             "1. 解压整个压缩包到自己的可写文件夹。不要只取出其中一个文件。\n"
             "2. 双击“快速开始.bat”，无需安装 Python、pip 或依赖。\n"
             "3. 浏览器通常自动打开；若未打开，请使用窗口中显示的本机地址。使用期间请保留窗口。\n"
@@ -179,11 +180,12 @@ def build(source: Path, output: Path) -> Path:
             "本包不附带任何使用者的密钥、订单、照片、历史或数据库。\n"
             "使用后配置和业务数据由应用保存在 app/.local/，请勿将使用后的文件夹直接转发。\n"
             "此包自带 Python 及依赖，不读取系统 Python；目前在本机 Windows x64 验证。\n"
-            "第三方许可见 runtime/LICENSE.txt 和各包 .dist-info 目录。应用尚未选择开源协议。\n",
+            "应用采用 MIT 许可证，见包根目录 LICENSE。\n"
+            "第三方许可见 runtime/LICENSE.txt 和各包 .dist-info 目录。\n",
             encoding="utf-8-sig",
         )
         (root / "runtime_inventory.json").write_text(json.dumps({
-            "application_version": "1.0.2", "python_version": platform.python_version(),
+            "application_version": "1.0.3", "python_version": platform.python_version(),
             "platform": "Windows-x64", "requires_system_python": False,
             "dependencies": {name: item.version for name, item in sorted(distributions.items())},
         }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

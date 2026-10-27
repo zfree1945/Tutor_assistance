@@ -21,13 +21,13 @@ ARTIFACTS = ROOT / "artifacts" / "acceptance" / f"ui_redesign_qa_{uuid4().hex[:8
 # temporary history database. Pre-cache two synthetic points for a useful map
 # screenshot without running the batch or calling any external service.
 _SEED = '''if not st.session_state.get("qa_redesign_seeded"):
-    from tutor_screen.maps import GeoResult
+    from tutor_screen.maps import GeoResult, LOCATION_REVISION
     from tutor_screen.models import Criteria
     from tutor_screen.history_store import create_import, append_event
     st.session_state.api_key="SYNTHETIC-MODEL-NOT-A-KEY"
-    for address,lng,lat in [("八仙楼小区",120.701,28.001),("大学城小区",120.90,28.20)]:
-        map_store.save_geo(address,"温州市",GeoResult(status="located",candidates=[GeoPoint(lng=lng,lat=lat,label="温州市"+address,city="温州市")]))
-    map_store.save_geo("同名小区","温州市",GeoResult(status="ambiguous",candidates=[GeoPoint(lng=120.705,lat=28.005,city="温州市")],resolver_revision=3))
+    for address,lng,lat in [("合成楼小区",120.701,28.001),("大学城小区",120.90,28.20)]:
+        map_store.save_geo(address,"温州市",GeoResult(status="located",resolver_revision=LOCATION_REVISION,candidates=[GeoPoint(lng=lng,lat=lat,label="温州市"+address,city="温州市")]))
+    map_store.save_geo("同名小区","温州市",GeoResult(status="ambiguous",candidates=[GeoPoint(lng=120.705,lat=28.005,city="温州市")],resolver_revision=LOCATION_REVISION))
     st.session_state.orders[1].match_status="可能匹配"
     st.session_state.orders[1].uncertain_fields=["报酬补充说明"]
     st.session_state.filtered=st.session_state.orders

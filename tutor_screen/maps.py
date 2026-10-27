@@ -15,9 +15,13 @@ from typing import Literal
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from .address_rules import NEARBY as _NEARBY
+from .address_rules import valid_address
+from .address_parts import split_address, county_city_parent
+
 
 MODES = ("公共交通", "骑行", "步行", "驾车")
-LOCATION_REVISION = 3
+LOCATION_REVISION = 10
 _PATHS = {
     "geocode": "/v3/geocode/geo",
     "search": "/v3/place/text",
@@ -44,6 +48,11 @@ class GeoPoint(BaseModel):
     lat: float = Field(ge=-90, le=90)
     label: str = Field(default="", max_length=300)
     city: str = Field(default="", max_length=100)
+    city_code: str = Field(default="", pattern=r"^(?:\d{3,4})?$")
+    district: str = Field(default="", max_length=100)
+    adcode: str = Field(default="", pattern=r"^(?:\d{6})?$")
+    poi_id: str = Field(default="", max_length=100)
+    name: str = Field(default="", max_length=300)
     precision: Literal["exact", "approximate", "area"] = "approximate"
     area_scale: Literal["small", "medium", "large"] | None = None
     source: Literal["amap", "user"] = "amap"
@@ -121,12 +130,15 @@ def _text(value) -> str:
     return value if isinstance(value, str) else ""
 
 
-def _point(location, *, label: str, city: str, precision: str = "approximate") -> GeoPoint | None:
+def _point(location, *, label: str, city: str, precision: str = "approximate",
+           district: str = "", adcode: str = "", poi_id: str = "", name: str = "", city_code: str = "") -> GeoPoint | None:
     if not isinstance(location, str):
         return None
     try:
         longitude, latitude = location.split(",")
-        return GeoPoint(lng=float(longitude), lat=float(latitude), label=label[:300], city=city[:100], precision=precision)
+        return GeoPoint(lng=float(longitude), lat=float(latitude), label=label[:300], city=city[:100], precision=precision,
+                        district=district[:100], adcode=adcode if re.fullmatch(r"\d{6}", adcode) else "",
+                        poi_id=poi_id[:100], name=name[:300], city_code=city_code if re.fullmatch(r"\d{3,4}", city_code) else "")
     except (ValueError, TypeError, ValidationError):
         return None
 
@@ -135,43 +147,144 @@ def _distinct(points: list[GeoPoint]) -> list[GeoPoint]:
     found: dict[tuple, GeoPoint] = {}
     for point in points:
         # 同名地点有多个出口时不合并；只删除同标签、同坐标的重复返回。
-        found.setdefault((round(point.lng, 6), round(point.lat, 6), point.label), point)
+        found.setdefault((point.poi_id, round(point.lng, 6), round(point.lat, 6), point.label,
+                          point.city, point.district, point.adcode), point)
     return list(found.values())
 
 
+def _geocode_point(item: dict) -> GeoPoint | None:
+    city = _text(item.get("city"))
+    province = _text(item.get("province"))
+    return _point(item.get("location"), label=_text(item.get("formatted_address")),
+                  city=city or (province if province.endswith("市") else ""),
+                  district=_text(item.get("district")), adcode=_text(item.get("adcode")),
+                  city_code=_text(item.get("citycode")),
+                  precision="exact" if _text(item.get("level")) in {"门牌号", "单元号", "门址"} else "approximate")
+
+
 def _district_hint(address: str) -> str:
-    match = re.match(r"^(?:.*?[省市])?([\u4e00-\u9fff]{2,6}?[区县])", address)
-    value = match.group(1) if match else ""
-    return "" if value.endswith(("小区", "社区", "校区", "园区")) else value
+    return split_address(address).district
 
 
-def _landmark(address: str) -> str:
-    nearby = _NEARBY.search(address)
-    value = address[nearby.end():] if nearby and nearby.group("near_prefix") else address
-    value = _NEARBY.split(value, maxsplit=1)[0]
-    value = re.sub(r"[（(].*?[）)]", "", value)
-    value = re.sub(r"\d+(?:号楼|栋|幢|单元|室).*$", "", value)
-    value = re.split(r"街道|路|街|巷", value)[-1].strip()
-    value = re.sub(r"^(?:.*?[省市])?" + re.escape(_district_hint(value)), "", value) if _district_hint(value) else value
-    # 单纯道路/行政区不作为能唯一识别的 POI。
-    return value if len(value) >= 3 and re.search(r"园|苑|湾|城|世家|小区|公寓|大厦|广场|学校|中学|小学|[0-9一二三四五六七八九十百零〇两]+[中小]|大学|学院|校区|医院|商场|超市|体育馆|地铁|站|肯德基|麦当劳", value) else ""
+def _landmark(address: str, city: str = "") -> str:
+    parts = split_address(address, city)
+    value = parts.landmark
+    # 有效地名不依赖“园/城/筑”等字；纯区域、门牌和泛词不作为地标。
+    if len(value) < 2 or not valid_address(value) or re.fullmatch(r".*(?:地址|地点|商圈|交叉口)|学校|小区|.*(?:社区|街道|开发区)", value):
+        return ""
+    if re.fullmatch(r"(?:[初高][一二三1-3]|[一二三四五六1-6]年级)(?:语文|数学|英语|物理|化学|全科)+", value):
+        return ""
+    return value
 
 
 def _same_city(point: GeoPoint, address: str, city: str) -> bool:
-    hint, returned = city.removesuffix("市"), point.city.removesuffix("市")
-    return bool(returned and (not hint or hint in returned or returned in hint or returned in address))
+    hint = split_address(address, city).city.removesuffix("市")
+    returned_city = point.city or split_address(point.label).city
+    returned = (county_city_parent(returned_city) or returned_city).removesuffix("市")
+    if hint.isdigit():
+        if len(hint) == 6:
+            prefix = hint[:2] if hint.endswith("0000") else hint[:4] if hint.endswith("00") else hint
+            return bool(point.adcode and point.adcode.startswith(prefix))
+        return bool(point.city_code and point.city_code == hint)
+    return bool(returned and (not hint or hint == returned))
 
 
-def _matches_landmark(point: GeoPoint, address: str, city: str, landmark: str) -> bool:
-    name = point.label.split(" · ", 1)[0]
+def _district_matches(point: GeoPoint, address: str, city: str, adcode: str = "") -> bool:
+    district = split_address(address, city).district
+    returned = point.district or split_address(point.label, point.city).district
+    if adcode and point.adcode and point.adcode != adcode:
+        return False
+    if district and returned and returned != district:
+        return False
+    return not district or returned == district or bool(adcode and point.adcode == adcode)
+
+
+def _school_number_text(number: int) -> str:
+    digits = "零一二三四五六七八九"
+    if number < 10:
+        return digits[number]
+    if number < 100:
+        return (digits[number // 10] if number >= 20 else "") + "十" + (digits[number % 10] if number % 10 else "")
+    tail = number % 100
+    suffix = ("零" + digits[tail] if 0 < tail < 10 else _school_number_text(tail) if tail else "")
+    if 10 <= tail < 20:
+        suffix = "一" + suffix
+    return digits[number // 100] + "百" + suffix
+
+
+def _numbered_school(value: str) -> tuple[str, str] | None:
+    value = re.sub(r"\s+", "", value)
+    match = re.search(r"(?<![0-9一二三四五六七八九十百零])(?:第)?([0-9]{1,3}|[一二三四五六七八九十百零]{1,6})(中学|小学|中|小)(?:[（(][^()（）]{1,30}校区[)）])?$", value)
+    if not match:
+        return None
+    number = match[1]
+    if number.isdigit():
+        if not 0 < int(number) < 1000:
+            return None
+        number = _school_number_text(int(number))
+    return number, "中学" if match[2].startswith("中") else "小学"
+
+
+def _metro_identity(value: str) -> tuple[str, str, frozenset[str]] | None:
+    """Compare station spelling without guessing a city's station or exit."""
+    value = re.sub(r"\s+", "", value)
+    if not re.search(r"地铁|轻轨|轨道交通|站(?:[（(]?(?:[A-Za-z]\d*|\d+号?)?(?:出入口|出口|入口|口)[)）]?)?$", value):
+        return None
+    access = ""
+    match = re.search(r"[（(]?(?P<id>[A-Za-z]\d*|\d+号?)?(?P<kind>出入口|出口|入口|口)[)）]?$", value)
+    if match:
+        access = (match.group("id") or match.group("kind")).upper().removesuffix("号")
+        value = value[:match.start()]
+    lines = frozenset(re.findall(r"[0-9一二三四五六七八九十]+号线|[sS]\d+线", value))
+    value = re.sub(r"(?:地铁|轻轨|轨道交通)?(?:[0-9一二三四五六七八九十]+号线|[sS]\d+线)", "", value)
+    value = re.sub(r"[（(](?:地铁站?|轻轨站?|轨道交通站?)[)）]", "", value)
+    value = value.strip("()（）")
+    value = re.sub(r"^(?:地铁|轻轨|轨道交通)", "", value)
+    value = re.sub(r"(?:地铁站?|轻轨站?|轨道交通站?|站)$", "", value)
+    if len(value) < 2 or re.search(r"[()（）]|地铁|轻轨|轨道交通", value):
+        return None
+    return value, access, lines
+
+
+def _matches_landmark(point: GeoPoint, address: str, city: str, landmark: str, adcode: str = "") -> bool:
+    name = point.name or _landmark(point.label.split(" · ", 1)[0], point.city)
     compact = lambda value: re.sub(r"[\s()（）·\-]", "", value)
     name, target = compact(name), compact(landmark)
-    if len(name) < 3 or not (target in name or target.endswith(name)):
+    # 学校简称只做可解释的“第十二中学 -> 十二中”转换；不做模糊猜测。
+    def school(value):
+        value = re.sub(r"^第(?=[0-9一二三四五六七八九十百]+(?:中学|小学|中|小)$)", "", value)
+        return re.sub(r"(中学|小学)$", lambda m: "中" if m.group() == "中学" else "小", value)
+    name, target = school(name), school(target)
+    city_name = point.city.removesuffix("市")
+    if city_name and name.startswith(city_name):
+        name = school(name[len(city_name):].removeprefix("市"))
+    # Use un-compacted POI names so parentheses such as 吴山(地铁站) retain
+    # their meaning. A requested A exit must never match B or a parent station.
+    station_target = _metro_identity(landmark)
+    station_name = _metro_identity(point.name or _landmark(point.label.split(" · ", 1)[0], point.city))
+    if station_target and station_name:
+        target_station, target_exit, target_lines = station_target
+        returned_station, returned_exit, returned_lines = station_name
+        returned_station = returned_station.removeprefix(point.city).removeprefix(city_name) if city_name else returned_station
+        if (target_station != returned_station or target_exit and target_exit != returned_exit
+                or target_lines and returned_lines and target_lines.isdisjoint(returned_lines)):
+            return False
+        return _same_city(point, address, city) and _district_matches(point, address, city, adcode)
+    # 允许品牌前缀和同一地标的出入口，不接受“目标小区售楼部/附近商铺”。
+    base = re.sub(r"(?:[东西南北]{1,2}门|出入口|入口|出口)$", "", name)
+    if name == target and (re.search(r"地铁|轻轨|轨道交通|公交站", target)
+                           or re.search(r"站(?:[A-Za-z]\d*|\d+号?)?(?:出入口|出口|入口|口)$", target)):
+        base = name  # A provider may resolve the exact named transit entrance.
+    if re.search(r"肯德基|麦当劳", landmark) and name.startswith(target):
+        base = target  # 连锁分店还需通过下面的原文道路核验。
+    prefix = target[:-len(base)] if base and target.endswith(base) else ""
+    district_name = (point.district or split_address(point.label, point.city).district).rstrip("区县")
+    explained_prefix = (bool(re.fullmatch(r"华润(?:置地)?|保利|泰禾|阳光", prefix))
+                        or bool(prefix and prefix.endswith(("路", "街", "巷", "广场", "街道", "镇", "乡")))
+                        or bool(prefix and district_name == prefix))
+    if len(base) < 2 or not (base == target or len(base) >= 3 and explained_prefix):
         return False
-    if not _same_city(point, address, city) or point.city.removesuffix("市") not in point.label:
-        return False
-    district = _district_hint(address)
-    if district and district not in point.label:
+    if not _same_city(point, address, city) or not _district_matches(point, address, city, adcode):
         return False
     if re.search(r"肯德基|麦当劳", landmark):
         roads = re.findall(r"[^省市区县镇乡街道，,;；\s]{2,12}(?:路|街|巷)", address)
@@ -194,11 +307,6 @@ def distance_km(origin: GeoPoint, destination: GeoPoint) -> float:
 
 _AREA_LEVELS = {"市", "区县", "乡镇", "村庄", "热点商圈", "开发区", "道路", "街道", "社区"}
 _AREA_PART = re.compile(r"[^，,；;。\s()（）]{2,40}?(?:街道|大道|片区|商圈|园区|校区|社区|省|市|区|县|镇|乡|村|路|街|巷)")
-# 单字“近”须有行政区/街道前缀；“近江”是专名，不能解释为附近。
-_NEARBY = re.compile(
-    r"附近|对面|旁边|周边|周围|旁|"
-    r"(?P<near_prefix>^[\u4e00-\u9fff]{2,}?(?:街道|省|市|区|县|镇|乡|路|街|巷)[^近，,；;。()（）]*?)近(?!江)(?=.)"
-)
 
 
 def area_queries(address: str) -> list[str]:
@@ -221,8 +329,7 @@ def _area_context(point: GeoPoint, address: str, city: str) -> bool:
         hint = city.removesuffix("市")
         if hint and returned not in hint and hint not in returned and returned not in address:
             return False
-    district = _district_hint(address)
-    return not district or district in point.label
+    return _district_matches(point, address, city)
 
 
 def _area_scale(level: str = "", *, landmark: bool = False, query: str = "") -> Literal["small", "medium", "large"]:
@@ -287,6 +394,7 @@ class AmapClient:
             raise MapAPIError("请先配置高德 Web 服务 Key。")
         self._key = web_key.strip()
         self._transport = transport
+        self._region_geocodes: dict[tuple[str, str], list] = {}
 
     def _pace_request(self) -> None:
         """串行限制真实 REST 请求；同一地址内的 POI/区域补查也要限速。"""
@@ -339,10 +447,39 @@ class AmapClient:
             raise MapAPIError("高德服务繁忙，此地址暂未完成定位，可稍后手动重试。", stop_batch=False, code=code, endpoint=endpoint)
         raise MapAPIError("此地址查询未成功，可检查地点后手动重试。", stop_batch=not bool(re.fullmatch(r"\d{1,6}", code)), code=code, endpoint=endpoint)
 
-    def search(self, query: str, city: str = "") -> list[GeoPoint]:
-        params = {"keywords": clean_query(query), "offset": "10", "page": "1", "extensions": "base", "citylimit": "false"}
-        if city.strip():
-            params["city"] = clean_query(city, city=True)
+    def _district_scope(self, city: str, district: str) -> str:
+        """最多补查一次明确区县；只使用城市、区县均核对一致的在线编码。"""
+        query = district  # city 参数提供城市上下文，查询不包含订单地名或范围。
+        key = (query, city)
+        if key not in self._region_geocodes:
+            params = {"address": query}
+            if city:
+                params["city"] = clean_query(city, city=True)
+            codes = self._request("geocode", params).get("geocodes", [])
+            if not isinstance(codes, list):
+                raise MapAPIError("地图定位结果格式无效，请稍后手动重试。")
+            self._region_geocodes[key] = codes
+        points = [_geocode_point(item) for item in self._region_geocodes[key][:25] if isinstance(item, dict)]
+        valid = {p.adcode for p in points if p and re.fullmatch(r"\d{6}", p.adcode)
+                 and not p.adcode.endswith("00") and _same_city(p, district, city)
+                 and _district_matches(p, district, city)}
+        return next(iter(valid)) if len(valid) == 1 else ""
+
+    def search(self, query: str, city: str = "", *, district: str = "", adcode: str = "",
+               citylimit: bool | None = None) -> list[GeoPoint]:
+        cleaned = clean_query(query)
+        parts = split_address(cleaned, city)
+        city = parts.city or city
+        district = district or parts.district
+        adcode = adcode if re.fullmatch(r"\d{6}", adcode) else ""
+        limited = (parts.city_explicit or bool(district) or bool(adcode)) if citylimit is None else citylimit
+        if district and not adcode:
+            adcode = self._district_scope(city, district)
+        params = {"keywords": parts.landmark or cleaned, "offset": "10", "page": "1",
+                  "extensions": "all", "citylimit": "true" if limited else "false"}
+        scope = adcode or city
+        if scope.strip():
+            params["city"] = clean_query(scope, city=True)
         data = self._request("search", params)
         pois = data.get("pois", [])
         if not isinstance(pois, list):
@@ -352,17 +489,95 @@ class AmapClient:
             if not isinstance(place, dict):
                 continue
             name = _text(place.get("name"))
-            district = _text(place.get("adname"))
+            place_district = _text(place.get("adname"))
             address = _text(place.get("address"))
             place_city = _text(place.get("cityname"))
-            label = " · ".join(part for part in (name, place_city + district + address) if part)
-            point = _point(place.get("location"), label=label, city=place_city or city)
+            label = " · ".join(part for part in (name, place_city + place_district + address) if part)
+            point = _point(place.get("location"), label=label, city=place_city, district=place_district,
+                           adcode=_text(place.get("adcode")), poi_id=_text(place.get("id")), name=name,
+                           city_code=_text(place.get("citycode")))
             if point is not None:
                 points.append(point)
         return _distinct(points)
 
     def locate(self, address: str, city: str = "") -> GeoResult:
-        params = {"address": clean_query(address)}
+        original = clean_query(address)
+        parts = split_address(original, city)
+        landmark = _landmark(original, city)
+        if (landmark and county_city_parent(parts.district)
+                and county_city_parent(parts.district).removesuffix("市") == parts.city.removesuffix("市")):
+            return self._locate_county_reference(original, parts.city, parts.district, landmark)
+        # A numbered school in a "nearby" description can anchor a reference
+        # area after a bounded, city-scoped search, never an exact lesson venue.
+        school = _numbered_school(_landmark(original, city)) if parts.relative and parts.city else None
+        # Only simplify a terminal transit access description. Keep ordinary
+        # building entrances and the order's original address untouched.
+        station = ""
+        if (re.search(r"地铁|轻轨|轨道交通|公交站", original)
+                or re.search(r"站\s*[(（]?\s*(?:[A-Za-z]\d*|\d+号?)?\s*(?:出入口|出口|入口|口)\s*[)）]?\s*$", original)):
+            station = re.sub(r"\s*[(（]?\s*(?:(?:[A-Za-z]\d*|\d+号?)\s*(?:出入口|出口|入口|口)|出入口|出口|入口)\s*[)）]?\s*$", "", original).strip()
+            if station == original or not re.search(r"(?:地铁|轻轨|站|站点)$", station):
+                station = ""
+        try:
+            result = self._locate_address(original, city)
+        except MapAPIError as exc:
+            if not (station or school) or exc.code != "30001" or exc.endpoint != "geocode":
+                raise
+            result = None
+        if station and (result is None or (result.status in {"not_found", "ambiguous"} and result.area_point is None)):
+            fallback = self._locate_address(station, city)
+            reference = fallback.area_point
+            if reference is None and fallback.status == "located" and len(fallback.candidates) == 1:
+                reference = _area_point(fallback.candidates[0], landmark=True)
+            if reference is not None:
+                return fallback.model_copy(update={
+                    "status": "ambiguous", "area_point": reference,
+                    "message": "已按站点显示参考位置，尚未确认具体入口或出口；距离仅供参考。",
+                })
+            return result if result is not None else fallback
+        if school and (result is None or result.status in {"not_found", "ambiguous"} and result.area_point is None):
+            number, kind = school
+            candidates = self.search(f"第{number}{kind}", parts.city, district=parts.district, citylimit=True)
+            matched = [point for point in candidates
+                       if _numbered_school(point.name or point.label.split(" · ", 1)[0]) == school
+                       and _same_city(point, original, parts.city)
+                       and _district_matches(point, original, parts.city)]
+            if len(matched) == 1:
+                point = matched[0]
+                return GeoResult(status="ambiguous", candidates=matched,
+                                 area_point=_area_point(point, point.name or point.label, landmark=True),
+                                 message="已按核验学校显示附近参考范围，具体上课地点待确认。",
+                                 resolver_revision=LOCATION_REVISION)
+            if result is None:
+                return GeoResult(status="ambiguous" if matched else "not_found", candidates=matched,
+                                 message="学校候选尚不能唯一确认，暂不显示参考范围。", resolver_revision=LOCATION_REVISION)
+        return result
+
+    def _locate_county_reference(self, address: str, city: str, district: str, landmark: str) -> GeoResult:
+        # Resolve the county code independently before accepting a POI. The
+        # provider's cityname may name the prefecture while adname is a city.
+        adcode = self._district_scope(city, district)
+        candidates = self.search(landmark, city, district=district, adcode=adcode, citylimit=True)
+        matched = [point for point in candidates if adcode and point.adcode == adcode and point.district == district
+                   and _matches_landmark(point, address, city, landmark, adcode)]
+        if len(matched) == 1:
+            point = matched[0]
+            return GeoResult(status="ambiguous", candidates=matched,
+                             area_point=_area_point(point, landmark, landmark=True),
+                             message="已按核验小区或地标显示参考位置，具体上课地点待确认。",
+                             resolver_revision=LOCATION_REVISION)
+        return GeoResult(status="ambiguous" if candidates else "not_found", candidates=candidates,
+                         message="县级市或地点信息尚不能唯一核验，暂不显示参考位置。",
+                         resolver_revision=LOCATION_REVISION)
+
+    def _locate_address(self, address: str, city: str = "") -> GeoResult:
+        original_address = clean_query(address)
+        parts = split_address(original_address, city)
+        query = parts.query
+        city = parts.city or city
+        if not query:
+            return GeoResult(status="not_found", message="缺少可检索的地名，请确认原始地址。", resolver_revision=LOCATION_REVISION)
+        params = {"address": query}
         if city.strip():
             params["city"] = clean_query(city, city=True)
         data = self._request("geocode", params)
@@ -377,12 +592,17 @@ class AmapClient:
                 continue
             level = _text(item.get("level"))
             coarse = coarse or level in _COARSE_LEVELS or not level
-            precision = "exact" if level in {"门牌号", "单元号", "门址"} else "approximate"
-            point = _point(item.get("location"), label=_text(item.get("formatted_address")), city=_text(item.get("city")) or _text(item.get("province")) or city, precision=precision)
+            point = _geocode_point(item)
             if point is not None:
                 points.append(point)
                 records.append((point, level))
         points = _distinct(points)
+        # 地址解析也必须核对行政区和地名，不能直接信任单条高精度返回。
+        landmark = _landmark(original_address, city)
+        wrong_context = any(not _same_city(p, params["address"], city)
+                            or not _district_matches(p, params["address"], city)
+                            or (landmark and not _matches_landmark(p, params["address"], city, landmark))
+                            for p in points)
         # 默认城市是提示而非全国同名地点的确定依据。无明确外地城市时，
         # 单个异地返回也进入待确认，避免误把另一城市同名小区自动落点。
         city_hint = params.get("city", "").removesuffix("市")
@@ -392,35 +612,45 @@ class AmapClient:
                 returned_city = candidate.city.removesuffix("市")
                 if returned_city and city_hint not in returned_city and returned_city not in city_hint and returned_city not in params["address"]:
                     wrong_city = True
-        if not points or len(points) > 1 or coarse or wrong_city:
+        if not points or len(points) > 1 or coarse or wrong_city or wrong_context:
             search_points = []
-            landmark = _landmark(params["address"])
+            adcode = ""
             if landmark or not points:
-                query = (_district_hint(params["address"]) + landmark) if landmark else params["address"]
-                candidates = self.search(query, city)
+                query = landmark or params["address"]
+                codes = {p.adcode for p in points if p.adcode and not p.adcode.endswith("00")
+                         and _same_city(p, params["address"], city) and _district_matches(p, params["address"], city)}
+                adcode = next(iter(codes)) if parts.district and len(codes) == 1 else ""
+                candidates = self.search(query, city, district=parts.district, adcode=adcode,
+                                         citylimit=parts.city_explicit or bool(parts.district))
+                # search 的补查编码只约束同一区县；无编码时仍保留城市及区县核验。
+                if parts.district and not adcode:
+                    adcode = self._district_scope(city, parts.district)
                 search_points = candidates
-                matched = [p for p in candidates if landmark and _matches_landmark(p, params["address"], city, landmark)]
+                matched = [p for p in candidates if landmark and _matches_landmark(p, params["address"], city, landmark, adcode)]
                 if len(matched) == 1:
                     return GeoResult(status="located", candidates=matched,
-                                     area_point=_area_point(matched[0], landmark, landmark=True) if _NEARBY.search(params["address"]) else None,
+                                     area_point=_area_point(matched[0], landmark, landmark=True) if parts.relative else None,
                                      message="按匹配的小区或地标显示约略位置，距离仅供参考。", resolver_revision=LOCATION_REVISION)
                 points = _distinct(candidates + points)[:25]
-            known_points = [point for point, level in records if level and level not in {"国家", "省", "未知"}]
-            area = _region_from_geocodes(records, params["address"], city) or _cluster_area(_distinct(search_points + known_points), params["address"], city)
+            area_records = [(p, level) for p, level in records if _district_matches(p, params["address"], city, adcode)]
+            known_points = [point for point, level in area_records if level and level not in {"国家", "省", "未知"}]
+            search_points = [p for p in search_points if _district_matches(p, params["address"], city, adcode)]
+            area = _region_from_geocodes(area_records, params["address"], city) or _cluster_area(_distinct(search_points + known_points), params["address"], city)
             if area is None:
                 # 道路、街道、区县逐级退回，最多补查3个原文区域；缓存后不重复请求。
                 queries = [query for query in area_queries(params["address"]) if query != params["address"]][:3]
                 for query in queries:
-                    fallback = self._request("geocode", {**params, "address": query})
-                    fallback_codes = fallback.get("geocodes", [])
+                    region = split_address(query, city)
+                    cache_key = (region.district, city) if region.district and not region.locality else (query, city)
+                    cached = self._region_geocodes.get(cache_key)
+                    fallback_codes = cached if cached is not None else self._request("geocode", {**params, "address": query}).get("geocodes", [])
                     if not isinstance(fallback_codes, list):
                         raise MapAPIError("地图定位结果格式无效，请稍后手动重试。")
                     regions = []
                     for item in fallback_codes[:25]:
                         if not isinstance(item, dict):
                             continue
-                        point = _point(item.get("location"), label=_text(item.get("formatted_address")),
-                                       city=_text(item.get("city")) or _text(item.get("province")) or city)
+                        point = _geocode_point(item)
                         if point and _area_context(point, query, city):
                             regions.append((point, _text(item.get("level"))))
                     area = _region_from_geocodes(regions, query, city, fallback=True)
@@ -432,7 +662,7 @@ class AmapClient:
             if not points:
                 return GeoResult(status="not_found", message="未找到可靠地点，订单仍保留在列表。", resolver_revision=LOCATION_REVISION)
             return GeoResult(status="ambiguous", candidates=points, message="候选地点分散或缺少可核对区域，暂不显示地图落点。", resolver_revision=LOCATION_REVISION)
-        if _NEARBY.search(params["address"]):
+        if parts.relative:
             return GeoResult(status="located", candidates=points, area_point=_area_point(points[0], landmark=True),
                              message="已标记附近地标的参考位置，具体上课地点待确认。", resolver_revision=LOCATION_REVISION)
         return GeoResult(status="located", candidates=points, message="约略位置，仅供附近筛选参考。" if points[0].precision == "approximate" else "地址定位成功；直线距离仅供参考。", resolver_revision=LOCATION_REVISION)

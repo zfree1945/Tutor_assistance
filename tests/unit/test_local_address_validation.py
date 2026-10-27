@@ -34,7 +34,7 @@ def test_real_bad_address_fields_are_marked_even_when_span_reader_skips_them(val
     assert "地址待确认" in parsed.uncertain_fields
 
 
-@pytest.mark.parametrize("address", ["龙湾或瓯北", "温州龙湾滨海宝龙世家", "教师公寓3栋", "科学馆附近", "西湖小学旁边", "#瓯海区三垟街道金域中央"])
+@pytest.mark.parametrize("address", ["龙湾或瓯北", "温州龙湾滨海合成家园", "教师公寓3栋", "科学馆附近", "西湖小学旁边", "#瓯海区三垟街道金域中央"])
 def test_valid_places_and_landmarks_are_kept(address):
     parsed = parse_local(f"初一数学\n地址：{address}\n时间：周六")
     assert parsed.address == address
@@ -56,14 +56,14 @@ def test_recalculating_legacy_order_clears_stale_address_source_and_map_eligibil
 
 
 def test_valid_recomputed_address_replaces_pollution_and_clears_old_uncertainty():
-    raw = "地点:温州龙湾滨海宝龙世家\n对象:初一学生，辅导数学"
-    order = Order(order_id="old", raw_text=raw, address="温州龙湾滨海宝龙世家\n对象:初一学生",
+    raw = "地点:温州龙湾滨海合成家园\n对象:初一学生，辅导数学"
+    order = Order(order_id="old", raw_text=raw, address="温州龙湾滨海合成家园\n对象:初一学生",
                   uncertain_fields=["地址待确认", "地址范围", "科目"])
     normalize_local_fields(order, raw)
     first = order.model_dump()
     normalize_local_fields(order, raw)
     assert order.model_dump() == first
-    assert order.address == "温州龙湾滨海宝龙世家"
+    assert order.address == "温州龙湾滨海合成家园"
     assert "对象" not in order.field_sources["address"]
     assert not {"地址待确认", "地址范围"}.intersection(order.uncertain_fields)
 
