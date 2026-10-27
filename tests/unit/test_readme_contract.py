@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_readme_matches_pages_modules_documentation_and_license_state():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "https://github.com/zfree1945/Tutor_assistance/releases/download/v1.0.3/%E5%AE%B6%E6%95%99%E7%AD%9B%E5%8D%95%E5%99%A8-v1.0.3-Windows-x64.zip" in readme
+    assert "https://github.com/zfree1945/Tutor_assistance/releases/download/v1.0.3/TutorAssistant-v1.0.3-Windows-x64.zip" in readme
     assert "https://github.com/zfree1945/Tutor_assistance/releases/tag/v1.0.3" in readme
     assert "/releases/download/v1.0.2/" not in readme
     assert not list(ROOT.glob("*.zip"))

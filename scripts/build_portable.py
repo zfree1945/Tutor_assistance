@@ -156,7 +156,7 @@ def build(source: Path, output: Path) -> Path:
         raise RuntimeError("Build this package on Windows x64 using Python 3.12.")
     source, output = source.resolve(), output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    archive = output / "家教筛单器-v1.0.3-Windows-x64.zip"
+    archive = output / "TutorAssistant-v1.0.3-Windows-x64.zip"
     if archive.exists():
         raise FileExistsError("Refusing to overwrite an existing portable release; choose a new output directory.")
     distributions = dependency_closure(runtime_requirements(source / "requirements.txt"))

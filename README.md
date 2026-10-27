@@ -18,7 +18,7 @@
 
 ### 直接使用：自带环境启动包
 
-Windows x64 自带环境启动包：**[下载 ZIP](https://github.com/zfree1945/Tutor_assistance/releases/download/v1.0.3/%E5%AE%B6%E6%95%99%E7%AD%9B%E5%8D%95%E5%99%A8-v1.0.3-Windows-x64.zip)**。也可进入 [v1.0.3 Release](https://github.com/zfree1945/Tutor_assistance/releases/tag/v1.0.3) 查看说明、验证报告和 SHA256；启动包作为 Release 附件，不放在源码仓库中。
+Windows x64 自带环境启动包：**[下载 ZIP](https://github.com/zfree1945/Tutor_assistance/releases/download/v1.0.3/TutorAssistant-v1.0.3-Windows-x64.zip)**。也可进入 [v1.0.3 Release](https://github.com/zfree1945/Tutor_assistance/releases/tag/v1.0.3) 查看说明、验证报告和 SHA256；启动包作为 Release 附件，不放在源码仓库中。
 
 完整解压启动包，双击其中的 `快速开始.bat`。无需安装 Python 或依赖，使用期间保留启动窗口。浏览器通常会自动打开；若未打开，请访问窗口显示的本机地址，通常为 [http://localhost:8501](http://localhost:8501)。
 

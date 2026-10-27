@@ -108,6 +108,7 @@ def test_build_release_contains_application_license_and_no_saved_user_data(tmp_p
         (destination / "python312._pth").write_text("../app", encoding="ascii")
     monkeypatch.setattr(portable, "copy_python", runtime)
     archive = portable.build(source, tmp_path / "release")
+    assert archive.name == "TutorAssistant-v1.0.3-Windows-x64.zip"
     with zipfile.ZipFile(archive) as content:
         prefix = "TutorAssistant-v1.0.3/"
         assert content.read(prefix + "LICENSE") == (ROOT / "LICENSE").read_bytes()
